@@ -83,7 +83,7 @@ test('语言下拉使用地球图标和深色高对比选项', () => {
 });
 
 test('翻译词典完整覆盖静态挂点和动态文案键', () => {
-  const dictionarySource = html.match(/const messages = (\{[\s\S]*?\n    \});\n\n    let currentLocale/);
+  const dictionarySource = html.replace(/\r\n/g, '\n').match(/const messages = (\{[\s\S]*?\n    \});\n\n    let currentLocale/);
   assert.ok(dictionarySource, '应能提取翻译词典');
   const messages = vm.runInNewContext('(' + dictionarySource[1] + ')');
   for (const [key, values] of Object.entries(messages)) {

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { VoiceAlerts, VOICE_TTL, voiceKey } from '../public/voice-alerts.mjs';
 
-const source = fs.readFileSync(new URL('../public/voice-ui.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
+const source = fs.readFileSync(new URL('../public/voice-ui.mjs', import.meta.url), 'utf8').replace(/^import .*;\r?\n/gm, '');
 const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 function harness({ hub = { storage: new Map(), tabs: [], locked: false }, failHistory = false } = {}) {
   let now = Date.now(), finish, plays = 0;

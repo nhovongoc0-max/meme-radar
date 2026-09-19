@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { GmgnClient, gmgnChildEnvironment, discoveryRequestArgs } from '../src/gmgn.mjs';
@@ -41,7 +41,7 @@ test('production GMGN worker ignores project/global dotenv and sends exactly the
   const key = fakeKey('c');
   try {
     fs.writeFileSync(path.join(temporary, '.env'), `GMGN_API_KEY=${fakeKey('a')}\nGMGN_DEBUG=1\nGMGN_PRIVATE_KEY=old-private\n`);
-    const args = ['--import', path.join(root, 'scripts/testing/gmgn-fixture.mjs'), path.join(root, 'src/gmgn-readonly-worker.mjs'),
+    const args = ['--import', pathToFileURL(path.join(root, 'scripts/testing/gmgn-fixture.mjs')).href, path.join(root, 'src/gmgn-readonly-worker.mjs'),
       'market', 'trending', '--chain', 'bsc', '--interval', '5m', '--limit', '1', '--raw'];
     const env = { ...gmgnChildEnvironment({}, key), RADAR_TEST_EXPECTED_KEY: key };
     const result = await exec(process.execPath, args, { cwd: temporary, env });
