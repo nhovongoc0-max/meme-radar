@@ -578,7 +578,8 @@ export class Scanner {
                   security: {
                     isHoneypot: deep.security?.honeypot,
                     openSource: deep.security?.openSource,
-                    mintable: typeof deep.security?.renouncedMint === 'boolean' ? !deep.security.renouncedMint : undefined
+                    // renounced_mint is Solana-specific; EVM placeholders are not mintability evidence.
+                    mintable: chain === 'sol' && typeof deep.security?.renouncedMint === 'boolean' ? !deep.security.renouncedMint : undefined
                   }
                 }
               });
