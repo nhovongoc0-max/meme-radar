@@ -148,7 +148,7 @@ test('scanner batch audits multiple candidates, saves per-chain history, and mul
   const gmgn={ configured:async()=>true, discover:async()=>Array.from({length:5},(_,i)=>({address:'0x'+String(i+1).padStart(40,'0'),symbol:'TEST',price:1,market_cap:50000,liquidity:10000,
     creation_timestamp:Date.now()/1000-1000,rug_ratio:.1,bundler_rate:.1,rat_trader_amount_rate:.1,is_wash_trading:false,is_honeypot:0})),
     audit:async()=>{audited++;return {info:{price:{price:'1'}},security:{owner_renounced:'no'},pool:{},holders:[],traders:[],candles:[],_meta:{complete:true}};} };
-  const scanner=new Scanner({gmgn,state,controls,settings:config});
+  const scanner=new Scanner({gmgn,state,controls,settings:{...config,maxDeepAuditsPerCycle:6}});
   await scanner.cycle();
   assert.equal(audited,5);
   assert.equal(state.value.auditQueueStats.auditedThisCycle,5);

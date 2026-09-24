@@ -36,9 +36,10 @@ test('discovery recognizes boolean variants and fails closed on malformed safety
 test('discovery validates Solana and EVM addresses according to chain', () => {
   const common = { market_cap: 50_000, liquidity: 10_000, creation_timestamp: nowSec - 600, rug_ratio: .1, bundler_rate: .1, rat_trader_amount_rate: .1, is_wash_trading: false };
   const solConfig = { ...config, chain: 'sol' };
-  assert.equal(discoveryScreen({ ...common, address: '11111111111111111111111111111111' }, solConfig, nowSec).pass, true);
+  const solAddress = 'So11111111111111111111111111111111111111112';
+  assert.equal(discoveryScreen({ ...common, address: solAddress }, solConfig, nowSec).pass, true);
   assert.match(discoveryScreen({ ...common, address }, solConfig, nowSec).reasons.join(' '), /地址格式异常/);
-  assert.match(discoveryScreen({ ...common, address: '11111111111111111111111111111111', is_honeypot: 0 }, config, nowSec).reasons.join(' '), /地址格式异常/);
+  assert.match(discoveryScreen({ ...common, address: solAddress, is_honeypot: 0 }, config, nowSec).reasons.join(' '), /地址格式异常/);
 });
 
 test('discovery ranking rewards multiple smart-money wallets but never rewards KOL-only interest', () => {

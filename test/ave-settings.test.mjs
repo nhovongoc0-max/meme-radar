@@ -22,17 +22,18 @@ function fixture(legacy) {
   return { directory, settings, calls, pauses, fetchImpl, next(value = {}) { clock += 61000; replies = value; },
     close() { rmSync(directory, { recursive: true, force: true }); } };
 }
-test('one AVE key reaches both fixed read-only endpoints; never becomes execution-ready', async () => {
+test('one AVE key reaches only the fixed Data GET; never becomes execution-ready', async () => {
   const f = fixture();
   try {
     const state = await f.settings.configure({ key: 'one-fixture-key' });
-    assert.equal(state.configured, true); assert.equal(state.data.status, 'connected'); assert.equal(state.trade.status, 'connected');
+    assert.equal(state.configured, true); assert.equal(state.data.status, 'connected'); assert.equal(state.trade.status, 'disabled');
     assert.equal(state.executionReady, false);
-    assert.deepEqual(f.calls.map(c => c.url), [AVE_CHECKS.data.url, AVE_CHECKS.trade.url]);
-    assert.deepEqual(f.pauses, [1100]);
+    assert.deepEqual(f.calls.map(c => c.url), [AVE_CHECKS.data.url]);
+    assert.deepEqual(Object.keys(AVE_CHECKS), ['data']);
+    assert.deepEqual(f.pauses, []);
     for (const call of f.calls) { assert.equal(call.options.method, 'GET'); assert.equal(call.options.body, undefined); assert.equal(call.options.redirect, 'error'); }
     assert.equal(f.calls[0].options.headers['X-API-KEY'], 'one-fixture-key');
-    assert.equal(f.calls[1].options.headers['AVE-ACCESS-KEY'], 'one-fixture-key');
+    assert.equal(f.settings.getKey(), 'one-fixture-key');
     assert.doesNotMatch(JSON.stringify(state), /one-fixture-key|privateKey/);
     const file = join(f.directory, 'ave-credentials.json');
     assert.equal(statSync(file).mode & 0o777, 0o600);
@@ -41,17 +42,18 @@ test('one AVE key reaches both fixed read-only endpoints; never becomes executio
     assert.equal(reboot.snapshot().configured, true); assert.equal(reboot.snapshot().data.status, 'untested');
   } finally { f.close(); }
 });
-test('partial access saves one key and keeps capability failure explicit', async () => {
+test('trade access cannot rescue failed Data verification or replace a saved key', async () => {
   const f = fixture();
   try {
     f.next({ trade: [{ error: 'fixture-secret' }, 403] });
     const state = await f.settings.configure({ key: 'partial-fixture' });
     assert.equal(state.configured, true); assert.equal(state.data.status, 'connected');
-    assert.equal(state.trade.status, 'error'); assert.equal(state.trade.code, 'AVE_AUTH'); assert.equal(state.executionReady, false);
+    assert.equal(state.trade.status, 'disabled'); assert.equal(state.executionReady, false);
     f.next({ data: [{ status: 0 }, 200] });
-    const other = await f.settings.configure({ key: 'replacement-fixture' });
-    assert.equal(other.data.status, 'error'); assert.equal(other.trade.status, 'connected');
-    assert.equal(JSON.parse(readFileSync(join(f.directory, 'ave-credentials.json'))).key, 'replacement-fixture');
+    await assert.rejects(f.settings.configure({ key: 'replacement-fixture' }), { code: 'AVE_SCHEMA' });
+    assert.equal(f.calls.length, 2);
+    assert.equal(f.settings.snapshot().data.status, 'connected');
+    assert.equal(JSON.parse(readFileSync(join(f.directory, 'ave-credentials.json'))).key, 'partial-fixture');
   } finally { f.close(); }
 });
 test('failed replacements preserve saved key; retest uses saved key; removal clears both capabilities', async () => {
@@ -67,17 +69,16 @@ test('failed replacements preserve saved key; retest uses saved key; removal cle
       assert.equal(f.settings.snapshot().data.status, 'connected'); // old key, not failed replacement
     }
     f.next({ data: [{}, 401], trade: [{}, 401] });
-    await assert.rejects(f.settings.configure({ key: '' }), { code: 'AVE_CHECK_FAILED' });
-    assert.equal(f.settings.snapshot().data.status, 'error'); assert.equal(f.settings.snapshot().trade.status, 'error');
+    await assert.rejects(f.settings.configure({ key: '' }), { code: 'AVE_AUTH' });
+    assert.equal(f.settings.snapshot().data.status, 'error'); assert.equal(f.settings.snapshot().trade.status, 'disabled');
     f.next(); await f.settings.configure({ key: '' });
-    assert.equal(f.calls.at(-2).options.headers['X-API-KEY'], 'original-fixture');
-    assert.equal(f.calls.at(-1).options.headers['AVE-ACCESS-KEY'], 'original-fixture');
+    assert.equal(f.calls.at(-1).options.headers['X-API-KEY'], 'original-fixture');
     f.settings.remove({});
     assert.equal(f.settings.snapshot().configured, false); assert.equal(f.settings.snapshot().trade.configured, false);
     assert.doesNotMatch(readFileSync(file, 'utf8'), /original-fixture/);
   } finally { f.close(); }
 });
-test('rate limit stops second request and enforces cooldown without automatic retries', async () => {
+test('rate limit enforces cooldown without automatic retries or trade requests', async () => {
   const f = fixture();
   try {
     f.next({ data: [{}, 429] });
@@ -86,7 +87,7 @@ test('rate limit stops second request and enforces cooldown without automatic re
     await assert.rejects(f.settings.configure({ key: 'limited-fixture' }), { code: 'AVE_COOLDOWN' });
     f.next({ trade: [{}, 429] });
     const state = await f.settings.configure({ key: 'limited-fixture' });
-    assert.equal(state.data.status, 'connected'); assert.equal(state.trade.code, 'AVE_RATE_LIMIT');
+    assert.equal(state.data.status, 'connected'); assert.equal(state.trade.status, 'disabled');
     await assert.rejects(f.settings.configure({ key: '' }), { code: 'AVE_COOLDOWN' });
   } finally { f.close(); }
 });
@@ -99,7 +100,7 @@ test('legacy one-sided/identical keys migrate safely; conflicting keys require r
       await f.settings.configure({});
       assert.equal(JSON.parse(readFileSync(file)).schema, 2);
       assert.equal(f.calls[0].options.headers['X-API-KEY'], 'legacy-fixture');
-      assert.equal(f.calls[1].options.headers['AVE-ACCESS-KEY'], 'legacy-fixture');
+      assert.equal(f.calls.length, 1);
     } finally { f.close(); }
   }
   const f = fixture({ schema: 1, keys: { data: 'old-data-fixture', trade: 'old-trade-fixture' } });
@@ -124,7 +125,7 @@ test('old split format, extra fields, header injection, revoked authority and co
     const file = join(f.directory, 'ave-credentials.json'), saved = readFileSync(file, 'utf8');
     f.next();
     let checks = 0;
-    await assert.rejects(f.settings.configure({ key: 'replacement-fixture' }, () => { if (++checks === 4) throw new Error('revoked'); }));
+    await assert.rejects(f.settings.configure({ key: 'replacement-fixture' }, () => { if (++checks === 3) throw new Error('revoked'); }));
     assert.equal(readFileSync(file, 'utf8'), saved);
     assert.throws(() => f.settings.remove({ kind: 'data' }));
     writeFileSync(file, '{broken');

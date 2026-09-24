@@ -1,4 +1,11 @@
+import { validTokenAddress } from './address.mjs';
+import { verifiedAvePoolEvidence } from './pool-identity.mjs';
+
 const DEX_CHAIN_IDS = Object.freeze({ sol: 'solana', bsc: 'bsc', base: 'base', eth: 'ethereum' });
+// Fast overlays must use the same verified chain map as deep validation.
+// Robinhood Chain currently has no verified DexScreener chain id here; a
+// speculative request only wastes time and makes the UI overstate coverage.
+const DEX_BATCH_CHAIN_IDS = DEX_CHAIN_IDS;
 const GOPLUS_EVM_CHAIN_IDS = Object.freeze({ eth: '1', bsc: '56', base: '8453' });
 
 const NUMBER_PATTERN = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
@@ -69,12 +76,7 @@ function sameAddress(left, right, chain) {
   return Boolean(a && b && a === b);
 }
 
-function validAddress(value, chain) {
-  const address = cleanString(value, 128);
-  return chain === 'sol'
-    ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)
-    : /^0x[a-f0-9]{40}$/i.test(address);
-}
+const validAddress = (value, chain) => validTokenAddress(chain, cleanString(value, 128));
 
 function errorCode(error) {
   if (error?.code) return String(error.code).slice(0, 64);
@@ -216,6 +218,139 @@ function parseDexScreener(payload, { chain, dexChainId, tokenAddress }) {
   };
   market.complete = market.priceUsd !== null && market.marketCap !== null && market.liquidityUsd !== null;
   return { found: true, market };
+}
+
+function validPairAddress(value, chain) {
+  const pair = cleanString(value, 128);
+  if (chain === 'sol') return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(pair);
+  return /^0x(?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(pair);
+}
+
+function parseDexBatch(payload, { chain, dexChainId, tokenAddresses, capturedAt }) {
+  if (!Array.isArray(payload) || payload.length > 1_000) {
+    const error = new Error('unexpected DexScreener batch JSON shape');
+    error.code = 'INVALID_JSON_SHAPE';
+    throw error;
+  }
+  const requested = new Set(tokenAddresses.map(value => normalizedAddress(value, chain)));
+  const best = new Map();
+  for (const pair of payload) {
+    if (!pair || typeof pair !== 'object' || cleanString(pair.chainId, 32) !== dexChainId) continue;
+    const baseAddress = normalizedAddress(pair.baseToken?.address, chain);
+    const members = [baseAddress, normalizedAddress(pair.quoteToken?.address, chain)].filter(value => requested.has(value));
+    if (!members.length || !validPairAddress(pair.pairAddress, chain)) continue;
+    const liquidity = optionalNonNegative(pair.liquidity?.usd);
+    const volume5m = optionalNonNegative(pair.volume?.m5);
+    const createdAt = optionalNonNegative(pair.pairCreatedAt);
+    if (liquidity === null || volume5m === null || !Number.isSafeInteger(createdAt)
+      || createdAt <= 0 || createdAt > capturedAt + 300_000) continue;
+    const poolMarket = {
+      pairAddress: cleanString(pair.pairAddress, 128), dexId: cleanString(pair.dexId, 64),
+      liquidity, volume5m, pairCreatedAt: createdAt
+    };
+    for (const tokenAddress of members) {
+      const market = { ...poolMarket,
+        // DexScreener's price/market-cap fields describe baseToken only. Pool
+        // metrics remain valid when the requested token happens to be quote.
+        priceUsd: tokenAddress === baseAddress ? optionalNonNegative(pair.priceUsd) : null,
+        marketCap: tokenAddress === baseAddress ? optionalNonNegative(pair.marketCap) : null,
+        fdv: tokenAddress === baseAddress ? optionalNonNegative(pair.fdv) : null };
+      const previous = best.get(tokenAddress);
+      if (!previous || market.liquidity > previous.liquidity) best.set(tokenAddress, market);
+    }
+  }
+  return best;
+}
+
+function overlayDexMarket(rows, chain, marketByToken, capturedAt, ttlMs) {
+  return rows.map(row => {
+    const market = marketByToken.get(normalizedAddress(row?.address, chain));
+    if (!market) return row;
+    const evidence = verifiedAvePoolEvidence(row, chain);
+    const evidencePair = evidence?.pair || '';
+    // Pair-scoped AVE facts (age, ATH and 1h move) are atomic. Do not combine
+    // them with DexScreener's highest-liquidity *different* pool.
+    if (evidencePair && evidencePair !== normalizedAddress(market.pairAddress, chain)) return row;
+    // An overlay without a strictly verified same-pool AVE identity starts a
+    // new atomic pool tuple. Never carry a legacy first-trade clock, ATH or
+    // other pair-scoped evidence into the selected DexScreener pool.
+    const cleanRow = evidence ? row : { ...row, first_trade_at: null, firstTradeAt: null,
+      last_trade_at: null, lastTradeAt: null, poolEvidence: null };
+    const marketCap = market.marketCap ?? cleanRow.market_cap;
+    const marketOverlayPriceUpdated = market.priceUsd > 0;
+    const price = marketOverlayPriceUpdated ? market.priceUsd : cleanRow.price;
+    return {
+      ...cleanRow, price, market_cap: marketCap,
+      marketCapSourceUpdatedAt: market.marketCap !== null ? capturedAt : cleanRow.marketCapSourceUpdatedAt,
+      marketCapCapturedAt: market.marketCap !== null ? capturedAt : cleanRow.marketCapCapturedAt,
+      marketCapExpiresAt: market.marketCap !== null ? capturedAt + ttlMs : cleanRow.marketCapExpiresAt,
+      liquidity: market.liquidity, volume_5m: market.volume5m,
+      pool_created_at: Math.floor(market.pairCreatedAt / 1_000), poolCreatedAt: market.pairCreatedAt,
+      pairAddress: market.pairAddress, dexId: market.dexId, ageBasis: 'pool', activityWindow: '5m',
+      tokenSourceUpdatedAt: cleanRow.tokenSourceUpdatedAt ?? cleanRow.sourceUpdatedAt,
+      tokenCapturedAt: cleanRow.tokenCapturedAt ?? cleanRow.capturedAt,
+      capturedAt, sourceUpdatedAt: capturedAt, sampledAt: capturedAt, expiresAt: capturedAt + ttlMs, stale: false,
+      marketOverlayProvider: 'DEXSCREENER', marketOverlayCapturedAt: capturedAt, marketOverlayPriceUpdated
+    };
+  });
+}
+
+// AVE remains the discovery source. This one bounded batch request only fills
+// the live card's main-pool market fields while AVE's slower per-pool checks
+// continue independently. Missing or malformed rows are never guessed.
+export class DexBatchMarketOverlay {
+  constructor({ fetchImpl = globalThis.fetch, timeoutMs = 8_000, maxResponseBytes = DEFAULT_MAX_BYTES,
+    now = () => Date.now(), ttlMs = 20_000, staleTtlMs = 60_000 } = {}) {
+    if (typeof fetchImpl !== 'function' || typeof now !== 'function') throw new TypeError('fetch implementation is required');
+    this.fetchImpl = fetchImpl;
+    this.timeoutMs = Math.max(1, Number(timeoutMs) || 8_000);
+    this.maxResponseBytes = Math.max(1_024, Number(maxResponseBytes) || DEFAULT_MAX_BYTES);
+    this.now = now;
+    this.ttlMs = Math.max(5_000, Math.min(30_000, Number(ttlMs) || 20_000));
+    this.staleTtlMs = Math.max(this.ttlMs, Math.min(120_000, Number(staleTtlMs) || 60_000));
+    this.cache = new Map();
+    this.pending = new Map();
+  }
+
+  async enrich(chain, rows, { minMarketCap = 0, maxMarketCap = Number.MAX_SAFE_INTEGER } = {}) {
+    if (!Array.isArray(rows)) return [];
+    const normalizedChain = cleanString(chain, 24).toLowerCase();
+    const dexChainId = DEX_BATCH_CHAIN_IDS[normalizedChain];
+    if (!dexChainId) return rows;
+    const addresses = [...new Set(rows.filter(row => {
+      const marketCap = optionalNonNegative(row?.market_cap);
+      return row?.marketProvider === 'AVE' && marketCap !== null && marketCap >= minMarketCap && marketCap <= maxMarketCap
+        && validAddress(row.address, normalizedChain);
+    })
+      .map(row => normalizedAddress(row.address, normalizedChain)))].slice(0, 30);
+    if (!addresses.length) return rows;
+    const key = normalizedChain + ':' + [...addresses].sort().join(',');
+    const at = this.now(), cached = this.cache.get(key);
+    if (cached?.until > at) return overlayDexMarket(rows, normalizedChain, cached.marketByToken, cached.capturedAt, this.ttlMs);
+    let job = this.pending.get(key);
+    if (!job) {
+      const url = `https://api.dexscreener.com/tokens/v1/${dexChainId}/${addresses.map(encodeURIComponent).join(',')}`;
+      job = (async () => {
+        const capturedAt = this.now();
+        const payload = await requestJson(this.fetchImpl, url, this);
+        const marketByToken = parseDexBatch(payload, { chain: normalizedChain, dexChainId, tokenAddresses: addresses, capturedAt });
+        const entry = { marketByToken, capturedAt, until: capturedAt + this.ttlMs, staleUntil: capturedAt + this.staleTtlMs };
+        if (!this.cache.has(key) && this.cache.size >= 16) this.cache.delete(this.cache.keys().next().value);
+        this.cache.set(key, entry);
+        return entry;
+      })();
+      this.pending.set(key, job);
+      job.finally(() => { if (this.pending.get(key) === job) this.pending.delete(key); }).catch(() => {});
+    }
+    try {
+      const entry = await job;
+      return overlayDexMarket(rows, normalizedChain, entry.marketByToken, entry.capturedAt, this.ttlMs);
+    } catch {
+      if (cached?.staleUntil > at) return overlayDexMarket(rows, normalizedChain, cached.marketByToken, cached.capturedAt, this.ttlMs)
+        .map((row, index) => row === rows[index] ? row : { ...row, stale: true });
+      return rows;
+    }
+  }
 }
 
 const EVM_SECURITY_RULES = Object.freeze([

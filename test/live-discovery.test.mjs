@@ -74,6 +74,34 @@ test('global rate-limit cooldown is honored; failed responses preserve old times
   assert.doesNotMatch(JSON.stringify(live.snapshot('bsc')),/secret upstream/);
 });
 
+test('AVE live cards apply one batch market overlay before filtering and expose real pool values', async () => {
+  const ca = token().address, pool = '0x' + 'a'.repeat(40);
+  const raw = { address: ca, chain: 'bsc', symbol: 'FAST', name: 'Fast', marketProvider: 'AVE', market_cap: 50_000,
+    price: 1, holder_count: 10, capturedAt: now - 120_000, sourceUpdatedAt: now - 120_000,
+    marketCapSourceUpdatedAt: now - 120_000, marketCapCapturedAt: now - 120_000, marketCapExpiresAt: now - 90_000,
+    expiresAt: now - 90_000, stale: true };
+  let overlayCalls = 0;
+  const marketOverlay = { enrich: async (chain, rows, scope) => {
+    overlayCalls++;
+    assert.equal(chain, 'bsc'); assert.equal(scope.minMarketCap, config.discoveryMinMarketCap);
+    return rows.map(row => ({ ...row, price: 1.1, market_cap: 51_000, liquidity: 12_000, volume_5m: 650,
+      pool_created_at: now / 1000 - 900, pairAddress: pool, ageBasis: 'pool', capturedAt: now, sourceUpdatedAt: now,
+      expiresAt: now + 20_000, marketCapSourceUpdatedAt: now, marketCapCapturedAt: now, marketCapExpiresAt: now + 20_000,
+      stale: false, marketOverlayProvider: 'DEXSCREENER' }));
+  } };
+  const provider = { keyEpoch: 0, configured: async () => true, live: async () => ({ tokens: [raw], capturedAt: now - 120_000 }),
+    snapshot: () => ({ pauseCode: null }), disabled: false, nextAllowedAt: 0 };
+  const live = new LiveDiscovery({ provider, cacheOnly: true, marketOverlay, now: () => now,
+    schedule: () => ({ unref() {} }), cancel: () => {} });
+  const snapshot = await live.readSnapshot('bsc');
+  assert.equal(overlayCalls, 1);
+  assert.equal(snapshot.rows.length, 1);
+  assert.equal(snapshot.rows[0].liquidity, 12_000);
+  assert.equal(snapshot.rows[0].volume5m, 650);
+  assert.equal(snapshot.rows[0].createdAt, now / 1000 - 900);
+  assert.equal(snapshot.rows[0].auditEligible, true);
+});
+
 test('credential changes discard in-flight data; unconfigured feed never requests upstream', async () => {
   let finish,calls=0;
   const gmgn={keyEpoch:0,configured:async()=>false,run:async()=>{calls++;return new Promise(resolve=>{finish=resolve;});}};
@@ -127,7 +155,8 @@ test('live endpoints require same-origin exact schema and return no raw data or 
   assert.equal((await dispatch(server,'/api/live-discovery',{chain:'bsc',force:true})).status,400);
   assert.equal((await dispatch(server,'/api/live-discovery',{chain:'unknown'})).status,400);
   const response=await dispatch(server,'/api/live-discovery',{chain:'bsc'});
-  assert.equal(touches,1);assert.equal(response.body.execution,false);assert.equal(response.body.rows[0].audit.status,'HARD_REJECT');
+  assert.equal(touches,1);assert.equal(response.body.execution,false);assert.equal(response.body.rows.length,0);
+  assert.equal(response.body.diagnostics.excluded,1);
   assert.doesNotMatch(JSON.stringify(response),/secret/);
   assert.equal((await dispatch(server,'/api/live-review',{chain:'bsc',address})).status,200);assert.equal(queued,1);
 });

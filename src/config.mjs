@@ -11,12 +11,20 @@ function boundedInteger(value, fallback, minimum, maximum) {
 
 export const config = Object.freeze({
   chain: 'robinhood',
-  supportedChains: Object.freeze(['sol', 'bsc', 'base', 'eth', 'robinhood', 'arc', 'stable']),
+  // Only expose chains with either published AVE support or a successful
+  // production observation. Arc/Stable were speculative slugs with no local
+  // success history or secondary safety coverage, so advertising them as
+  // usable made an empty tab look like a healthy chain.
+  supportedChains: Object.freeze(['sol', 'bsc', 'base', 'eth', 'robinhood']),
   port: boundedInteger(process.env.RADAR_PORT, 3791, 1024, 65_535),
-  scanIntervalMs: boundedInteger(process.env.SCAN_INTERVAL_MS, 120_000, 30_000, 30 * 60_000),
-  maxDeepAuditsPerCycle: boundedInteger(process.env.MAX_DEEP_AUDITS_PER_CYCLE, 6, 1, 12),
+  scanIntervalMs: boundedInteger(process.env.SCAN_INTERVAL_MS, 300_000, 30_000, 30 * 60_000),
+  // The public fast-feed build performs one hot-list request per turn. Deep
+  // token reads are opt-in because a second endpoint can have a stricter
+  // provider rate bucket and must never stall the primary discovery lane.
+  maxDeepAuditsPerCycle: boundedInteger(process.env.MAX_DEEP_AUDITS_PER_CYCLE, 0, 0, 12),
   auditCycleBudgetMs: 80_000,
-  outcomeReadsPerCycle: 4,
+  // Historical K-line backfills are optional; live observations still track outcomes.
+  outcomeReadsPerCycle: 0,
   xReviewMode: 'manual',
   minAgeSec: 5 * 60,
   maxAgeSec: 7 * 86400,
@@ -26,6 +34,16 @@ export const config = Object.freeze({
   priorityMaxMarketCap: 80_000,
   minLiquidity: 3_000,
   strictLiquidity: 8_000,
+  // Fast alerts should favor current activity. These are dynamic opportunity
+  // gates, not permanent contract-risk exclusions.
+  matureMarketAgeSec: 60 * 60,
+  oldMarketAgeSec: 6 * 60 * 60,
+  minMatureVolume5mUsd: 100,
+  minOldVolume5mUsd: 250,
+  minMatureTurnover5m: 0.005,
+  minOldTurnover5m: 0.01,
+  maxCollapsedAthRatio: 0.10,
+  strongRebound1h: 0.20,
   maxRugRatio: 0.20,
   maxTop10Rate: 0.30,
   maxInsiderRate: 0.15,

@@ -20,7 +20,7 @@ function defaultState() {
     scanInProgress: false,
     activeChain: 'robinhood',
     pendingChain: '',
-    supportedChains: ['sol', 'bsc', 'base', 'eth', 'robinhood', 'arc', 'stable'],
+    supportedChains: ['sol', 'bsc', 'base', 'eth', 'robinhood'],
     chainStates: {},
     riskExclusions: {},
     scanCount: 0,

@@ -63,6 +63,6 @@ try {
     }
     throw new Error('雷达未能启动，请查看 logs/radar-launch.log。');
   });
-  console.log(`雷达已打开：${url}\n首次使用：点击“首次使用 / 创建 API”，按页面步骤完成 GMGN 公钥绑定。`);
+  console.log(`雷达已打开：${url}\n首次使用：展开“AVE API”，填写自己的行情 Key 并保存测试。`);
   if (!process.argv.includes('--no-open')) await openBrowser();
 } catch (error) { console.error(`启动未完成：${error.message}\n可手动访问 ${url}`); process.exitCode = 1; }

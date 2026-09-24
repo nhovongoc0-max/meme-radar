@@ -49,7 +49,13 @@ test('open-source release metadata uses AGPL and remains blocked from accidental
   assert.equal(fs.existsSync(path.join(root, 'LICENSE')), true);
 });
 
-test('community entry point never inherits a global GMGN key', () => {
+test('community production entry uses only local AVE credentials and never loads a GMGN client or key store', () => {
   const main = fs.readFileSync(path.join(root, 'src/main.mjs'), 'utf8');
-  assert.match(main, /legacyKeyProvider:\s*\(\)\s*=>\s*''/);
+  assert.match(main, /import\s*\{\s*AveClient\s*\}\s*from\s*['"]\.\/ave\.mjs['"]/);
+  assert.match(main, /apiKeyProvider:\s*\(\)\s*=>\s*ave\.getKey\(\)/);
+  assert.match(main, /verifyData:\s*key\s*=>\s*market\.verifyApiKey\(key\)/);
+  assert.match(main, /minimumGapMs:\s*5\s*\*\s*60_000/);
+  assert.match(main, /new Scanner\(\{ provider: market/);
+  assert.match(main, /new LiveDiscovery\(\{ provider: market/);
+  assert.doesNotMatch(main, /(?:import[^;]+from\s*['"]\.\/gmgn|new\s+Gmgn|process\.env\.(?:GMGN|AVE)|saveGmgnKey:|getGmgnOnboarding:)/);
 });

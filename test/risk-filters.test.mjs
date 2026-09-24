@@ -82,7 +82,7 @@ test('risk memory survives restart, old snapshots and chain switching without an
   state.value.activeChain = 'bsc';
   const gmgn = { keyEpoch: 1, configured: async () => true, discover: async () => [discovery(Date.now())],
     audit: async () => { audits++; return { candles: pump(Date.now()) }; } };
-  let scanner = new Scanner({ state, gmgn, settings: { ...config, chain: 'bsc', outcomeReadsPerCycle: 1 } });
+  let scanner = new Scanner({ state, gmgn, settings: { ...config, chain: 'bsc', outcomeReadsPerCycle: 1, maxDeepAuditsPerCycle: 1 } });
   await scanner.cycle();
   assert.equal(audits, 1);
   const key = 'bsc:' + address, hold = state.value.riskExclusions[key];

@@ -131,6 +131,11 @@ test('health separates service liveness from scanner readiness and freshness', (
   const failed = healthSnapshot({ status: 'ERROR', lastSuccessAt: now - 10_000 }, settings, now);
   assert.equal(failed.ready, false);
   assert.equal(failed.degraded, true);
+  const paused = healthSnapshot({ status: 'HOURLY_BUDGET_PAUSED', lastSuccessAt: 0, generatedAt: now }, settings, now);
+  assert.equal(paused.scanner.lastSuccessAt, 0);
+  assert.equal(paused.scanner.fresh, false);
+  assert.equal(paused.ready, false);
+  assert.match(toPublicStatus({ status: 'HOURLY_BUDGET_PAUSED' }).error, /小时预算/);
 });
 
 function dispatch(server, { method = 'GET', pathName = '/', headers = {}, body = '' } = {}) {
@@ -167,7 +172,8 @@ test('AVE configuration is local-only, requires same-origin JSON and never opens
   assert.equal(calls, 0);
   const response = await dispatch(server, { method: 'POST', pathName: '/api/ave-configure', headers: { origin: 'http://127.0.0.1:3791', 'content-type': 'application/json' }, body: JSON.stringify({ key: 'fixture-not-real' }) });
   assert.equal(response.status, 200); assert.equal(calls, 1);
-  assert.deepEqual(JSON.parse(response.body), { ave: snapshot });
+  assert.equal(JSON.parse(response.body).ave.configured, true);
+  assert.equal(JSON.parse(response.body).ave.executionReady, false);
   const trading = await dispatch(server, { method: 'POST', pathName: '/api/ave-submit', headers: { origin: 'http://127.0.0.1:3791' } });
   assert.equal(trading.status, 405);
 });

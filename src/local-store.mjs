@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { validTokenAddress } from './address.mjs';
 import crypto from 'node:crypto';
 
 export function atomicJson(file, value) {
@@ -62,8 +63,7 @@ export class RadarControls {
     return { enabledChains: this.value.enabledChains };
   }
   annotate({ chain, address, favorite, note }) {
-    if (!this.chains.includes(chain) || typeof address !== 'string'
-      || !(chain === 'sol' ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/ : /^0x[0-9a-f]{40}$/i).test(address)
+    if (!this.chains.includes(chain) || !validTokenAddress(chain, address)
       || typeof favorite !== 'boolean' || typeof note !== 'string' || note.length > 500) {
       throw Object.assign(new Error('invalid_annotation'), { statusCode: 400 });
     }

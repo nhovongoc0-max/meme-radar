@@ -644,16 +644,73 @@
     .voice-panel { padding: 12px 18px; margin: 16px 0; }
     .voice-panel .manage-actions { margin: 0 0 6px; }
     .voice-panel input[type="range"] { width: 110px; }
+    .voice-panel select { min-height: 34px; border: 1px solid var(--line); border-radius: 8px; background: #091419; color: var(--text); padding: 5px 9px; font-size: 14px; }
     .voice-panel [hidden] { display: none; }
+
+    .voice-spotlight { position: sticky; top: 10px; z-index: 8; padding: 12px 18px; margin-bottom: 16px; border-color: #4c9b7f; background: var(--panel-strong); box-shadow: 0 8px 24px #0004; }
+    .voice-spotlight[hidden] { display: none; }
+    .voice-spotlight-heading, .voice-spotlight-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .voice-spotlight-heading strong { color: var(--green); }
+    .voice-spotlight-heading .muted { margin-inline-end: auto; }
+    .voice-spotlight-main { margin: 8px 0; }
+    .voice-spotlight-main > div:first-child { min-width: 0; }
+    .voice-spotlight-main b, .voice-spotlight-main code, .voice-spotlight-main small { display: block; overflow-wrap: anywhere; }
+    .voice-spotlight-main .manage-actions { margin: 0; flex-shrink: 0; }
+    .voice-spotlight-queue { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+    .voice-spotlight-queue select { min-width: 0; flex: 1; }
+    tr.voice-spotlight-row td { box-shadow: inset 0 2px #43efaa66, inset 0 -2px #43efaa66; background: #102a22; }
+    tr.voice-spotlight-row td:first-child { border-inline-start: 3px solid var(--green); }
+    tr.voice-spotlight-row { scroll-margin-top: 240px; }
+    .voice-spotlight-badge { display: block; margin-bottom: 4px; color: var(--green); font-size: 14px; }
+    @media (max-width: 620px) { .voice-spotlight { top: 4px; padding: 10px 12px; } .voice-spotlight-main { align-items: flex-start; flex-direction: column; } .voice-spotlight-queue { gap: 6px; } }
+
     .saved-row { padding: 10px 0; border-bottom: 1px solid #213a42; overflow-wrap: anywhere; }
     dialog { color-scheme: dark; background: #101e24; color: #d7e5e3; border: 1px solid #45646a; border-radius: 12px; max-width: 520px; width: 90vw; }
     dialog::backdrop { background: #0009; }
     dialog textarea { display: block; width: 100%; min-height: 120px; margin: 16px 0; font: inherit; background: #081318; color: #e5f0ec; border: 1px solid #45646a; }
+    /* A quiet working surface: the feed first, operational detail on demand. */
+    body { background: #101416; font-size: 16px; }
+    body::before { display: none; }
+    .shell { width: min(1440px, calc(100% - 40px)); padding-top: 24px; }
+    header { margin-bottom: 24px; }
+    .brand h1 { font-size: 22px; letter-spacing: 0; }
+    .mark { width: 42px; height: 42px; clip-path: none; border-radius: 12px; box-shadow: none; background: #17372b; border-color: #315244; }
+    .panel { background: #161d20; border-color: #2a3438; box-shadow: none; }
+    .chain-panel { padding: 8px 0; margin: 0 0 12px; border: 0; background: #101416; }
+    .chain-title { display: none; }
+    .chain-button { border-radius: 8px; }
+    .live-panel { margin-top: 0; background: #161d20; }
+    .live-heading { padding: 22px 22px 16px; }
+    .live-heading small { font-size: 14px; }
+    .live-toolbar { padding: 0 22px 18px; }
+    .live-meta { padding: 0 22px 14px; }
+    .live-grid { grid-template-columns: repeat(3,minmax(0,1fr)); padding: 0 22px 22px; gap: 16px; max-height: none; overflow: visible; }
+    .live-card { background: #1b2428; padding: 20px; border-color: #303e43; border-radius: 14px; }
+    .live-card-head strong { font-size: 23px; }
+    .live-numbers { grid-template-columns: 1fr 1fr; margin: 20px 0; gap: 16px; }
+    .live-numbers small { font-size: 14px; }
+    .live-numbers b { font-size: 20px; font-weight: 600; }
+    .live-tag { border-radius: 20px; padding: 3px 10px; color: #b5c8c3; background: #283932; }
+    .live-card .mini-button { border-radius: 8px; padding: 8px 12px; }
+    .live-card .mini-button.primary { color: #0d231a; background: #70dda9; border-color: #70dda9; }
+    .live-card.voice-highlight { border: 2px solid #70dda9; background: #18352b; scroll-margin-top: 180px; }
+    .voice-panel { padding: 14px 20px; }
+    .voice-panel .manage-actions { margin: 0; }
+    .advanced-panel { margin-top: 24px; }
+    .advanced-panel > summary { padding: 14px 0; cursor: pointer; color: var(--muted); }
+    .advanced-panel > .grid { margin-top: 16px; }
+    .advanced-panel .head > span { display: none; }
+    .compact-audits { min-width: 700px; }
+    .compact-audits td { position: static; max-width: 280px; vertical-align: top; }
+    .compact-audits details { margin-top: 8px; font-size: 14px; }
+    .compact-audits summary { cursor: pointer; color: var(--muted); }
+    [hidden] { display: none !important; }
+    #notice:empty { display: none; }
+    @media (max-width: 1050px) { .live-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+    @media (max-width: 640px) { .shell { width: calc(100% - 24px); } .live-grid { grid-template-columns: 1fr; padding: 0 14px 14px; } .live-heading,.live-toolbar { padding-inline: 14px; } }
   </style>
 </head>
 <body>
-  <canvas id="particleCanvas" class="particle-canvas" aria-hidden="true"></canvas>
-  <div class="scan-line" aria-hidden="true"></div>
   <main class="shell">
     <header>
       <div class="brand">
@@ -673,6 +730,7 @@
             <option value="ar">العربية</option>
           </select>
         </label>
+        <button id="updateButton" class="mini-button" type="button" data-i18n="updateButton">一键更新</button>
         <div class="status" role="status" aria-live="polite">
           <i id="dot" class="dot"></i>
           <span id="fresh" data-i18n="waitingState">等待状态</span>
@@ -680,6 +738,8 @@
         </div>
       </div>
     </header>
+
+    <section id="voiceSpotlight" class="panel voice-spotlight" hidden aria-labelledby="voiceSpotlightTitle" aria-live="polite"></section>
 
     <div id="notice" class="notice" role="status" aria-live="polite" data-i18n="loadingStatus">正在读取本地雷达状态……</div>
 
@@ -690,43 +750,21 @@
       </div>
       <div class="chain-actions">
         <div id="chainSwitcher" class="chain-switcher"></div>
-        <form id="gmgnKeyForm" class="api-key-form">
-          <span class="api-key-label" data-i18n="gmgnApiLabel">GMGN API</span>
-          <input id="gmgnKeyInput" class="api-key-input" type="password" autocomplete="off" spellcheck="false" autocapitalize="none" maxlength="256" data-ltr aria-describedby="gmgnKeyStatus" placeholder="输入 API Key" data-i18n-placeholder="gmgnApiPlaceholder">
-          <button id="gmgnKeyButton" class="api-key-button" type="submit" aria-label="确认并连接 GMGN API" data-i18n-aria="gmgnApiSubmitAria"><span aria-hidden="true">✓</span><span class="visually-hidden" data-i18n="gmgnApiSubmitText">确认</span></button>
-          <span id="gmgnKeyStatus" class="api-key-status" role="status" aria-live="polite" data-i18n="gmgnApiLocalOnly">仅发往本机</span>
-          <button id="gmgnOnboardingButton" class="api-key-help" type="button" data-i18n="gmgnApiGetKey">首次使用 / 创建 API</button>
-        </form>
       </div>
     </section>
 
-    <details class="panel ave-settings">
-      <summary>AVE API</summary>
-      <p data-i18n="aveApiHelp">检测行情和交易服务连接。不签名、不下单。</p>
-      <form class="api-key-row" id="ave-key-form">
-        <label for="ave-api-key">AVE API Key</label>
-        <input id="ave-api-key" class="field" type="password" autocomplete="off" spellcheck="false" maxlength="1024" placeholder="API Key">
-        <button type="submit" class="mini-button" data-i18n="aveTest">保存 / 测试</button>
-        <button type="button" class="mini-button" id="ave-remove" data-i18n="aveRemove">移除 Key</button>
-      </form>
-      <p id="ave-config-status" role="status" aria-live="polite" data-i18n="aveUnconfigured">未配置</p>
-      <div class="api-key-row"><span data-i18n="aveDataService">行情服务</span><span id="ave-data-status" role="status" data-i18n="aveUnconfigured">未配置</span></div>
-      <div class="api-key-row"><span data-i18n="aveTradeService">交易服务（只读检查）</span><span id="ave-trade-status" role="status" data-i18n="aveUnconfigured">未配置</span></div>
-      <p class="muted" data-i18n="aveApiCost">行情测试约 5 CU；交易服务仅查 Gas，不代表已具备下单能力。保存后可留空重测。</p>
-      <div class="manage-actions"><a href="https://share.ave.ai?lang=zh-cn&amp;code=0001" target="_blank" rel="noopener noreferrer" data-i18n="aveEntry">打开 AVE</a><a href="https://cloud.ave.ai/" target="_blank" rel="noopener noreferrer" data-i18n="aveManage">API 管理</a></div>
-    </details>
 
     <section id="livePanel" class="panel live-panel" aria-labelledby="liveTitle">
       <div class="live-heading">
-        <div><h2 id="liveTitle" data-i18n="liveTitle">即时发现 · 1分钟活跃榜</h2><small data-i18n="liveWarning">先发现，再核验。未完成深审，不代表安全或买入建议。</small></div>
+        <div><h2 id="liveTitle" data-i18n="liveTitle">候选雷达</h2><small data-i18n="radarDisclaimer">自动筛选 · 观察线索，非安全保证</small></div>
         <label class="live-toggle"><input id="liveAuto" type="checkbox" checked><span data-i18n="liveAuto">自动更新</span></label>
       </div>
       <div class="live-toolbar">
         <input id="liveSearch" class="field" type="search" autocomplete="off" data-i18n-placeholder="searchPlaceholder" placeholder="搜索代币名称、简称或合约地址">
         <select id="liveSort" class="field" data-i18n-aria="liveSort" aria-label="发现排序">
           <option value="priority" data-i18n="livePriority">2–8万市值优先</option>
-          <option value="volume" data-i18n="liveVolumeSort">1分钟成交额优先</option>
-          <option value="new" data-i18n="liveNewSort">最近新进榜</option>
+          <option value="volume" data-i18n="liveVolumeSort">5分钟成交额优先</option>
+          <option value="new" selected data-i18n="liveNewSort">最近出现</option>
         </select>
         <span id="liveState" role="status" aria-live="polite" class="live-tag"></span>
       </div>
@@ -739,11 +777,28 @@
         <strong id="voiceTitle">候选语音提醒</strong>
         <button id="voiceEnable" type="button" class="mini-button">试听并开启</button>
         <button id="voiceStop" type="button" class="mini-button" hidden>关闭</button>
+        <label><span id="voiceLanguageLabel">播报语言</span> <select id="voiceLanguage" aria-label="播报语言"><option value="zh">中文</option><option value="en">English</option></select></label>
         <label><span id="voiceVolumeLabel">音量</span> <input id="voiceVolume" type="range" min="0" max="100" value="50" aria-label="Volume"></label>
         <span id="voiceStatus" class="muted" role="status" aria-live="polite"></span>
       </div>
-      <small id="voiceHelp" class="muted">只提醒新完成链上筛选的候选，仍需人工复核。</small>
+      <small id="voiceHelp" class="visually-hidden">语音播报时置顶显示</small>
     </section>
+    <details id="advancedPanel" class="advanced-panel">
+      <summary data-i18n="advancedTitle">设置与运行记录</summary>
+    <details id="aveSettings" class="panel ave-settings">
+      <summary>AVE API <span id="aveSummary" class="muted"></span></summary>
+      <form class="api-key-row" id="ave-key-form">
+        <label for="ave-api-key">AVE API Key</label>
+        <input id="ave-api-key" class="field" type="password" autocomplete="off" spellcheck="false" maxlength="1024" placeholder="API Key">
+        <button type="submit" class="mini-button" data-i18n="aveTest">保存 / 测试</button>
+        <button type="button" class="mini-button" id="ave-remove" data-i18n="aveRemove">移除 Key</button>
+      </form>
+      <p id="ave-config-status" role="status" aria-live="polite" data-i18n="aveUnconfigured">未配置</p>
+      <p id="aveBudget" class="muted"></p>
+      <details><summary data-i18n="aveDiagnostics">连接诊断</summary><p id="aveTransport" class="muted"></p><p id="aveDiagnosticRows" class="muted" style="white-space:pre-wrap"></p></details>
+      <div class="api-key-row"><span data-i18n="aveDataService">行情服务</span><span id="ave-data-status" role="status" data-i18n="aveUnconfigured">未配置</span></div>
+      <div class="manage-actions"><a href="https://share.ave.ai?lang=zh-cn&amp;code=0001" target="_blank" rel="noopener noreferrer" data-i18n="aveEntry">打开 AVE</a><a href="https://cloud.ave.ai/login" target="_blank" rel="noopener noreferrer" data-i18n="aveManage">API 管理</a></div>
+    </details>
     <section class="grid">
       <article class="panel wide manage-panel">
         <details id="manageDetails">
@@ -766,7 +821,7 @@
       </article>
       <article class="panel telemetry" aria-label="运行状态" data-i18n-aria="runtimeAria">
         <div class="telemetry-item"><label data-i18n="localService">本地服务</label><strong id="serviceState" data-i18n="connecting">正在连接</strong><small id="serviceDetail" data-i18n="port3791">端口3791</small></div>
-        <div class="telemetry-item"><label data-i18n="gmgnSource">GMGN数据源</label><strong id="providerState" data-i18n="waitingState">等待状态</strong><small id="providerDetail" data-i18n="notRead">尚未读取</small></div>
+        <div class="telemetry-item"><label data-i18n="gmgnSource">AVE数据源</label><strong id="providerState" data-i18n="waitingState">等待状态</strong><small id="providerDetail" data-i18n="notRead">尚未读取</small></div>
         <div class="telemetry-item"><label data-i18n="lastAttemptLabel">最近扫描尝试</label><strong id="lastAttempt">--</strong><small id="attemptAgo" data-i18n="noRecord">暂无记录</small></div>
         <div class="telemetry-item"><label data-i18n="lastSuccessLabel">最近成功扫描</label><strong id="lastSuccess">--</strong><small id="successAgo" data-i18n="noRecord">暂无记录</small></div>
         <div class="telemetry-item"><label data-i18n="nextScanLabel">下轮扫描</label><strong id="nextScan">--</strong><small id="scanProgress" data-i18n="waitingSchedule">等待调度</small></div>
@@ -774,11 +829,11 @@
       </article>
 
       <article class="panel metric"><label><span data-i18n="scanRounds">扫描轮次</span> <span class="scope" data-i18n="cumulative">累计</span></label><strong id="scanCount">0</strong><small data-i18n="completedRounds">成功完成的历史轮次</small></article>
-      <article class="panel metric"><label><span data-i18n="discoveredTokens">发现代币</span> <span class="scope" data-i18n="currentRound">本轮</span></label><strong id="discovered">0</strong><small data-i18n="gmgnReturned">本轮GMGN返回数量</small></article>
-      <article class="panel metric"><label><span data-i18n="prequalifiedLabel">初筛通过</span> <span class="scope" data-i18n="currentRound">本轮</span></label><strong id="prequalified">0</strong><small id="prequalifiedDetail" data-i18n="awaitingAudit">等待或已进入深度审计</small></article>
-      <article class="panel metric"><label><span data-i18n="deepAuditLabel">深度审计</span> <span class="scope" data-i18n="last30m">近30分钟</span></label><strong id="audited">0</strong><small id="auditedDetail" data-i18n="auditSnapshots">当前保留的审计快照</small></article>
-      <article class="panel metric"><label><span data-i18n="chainCandidatesLabel">链上候选/待人工看X</span> <span class="scope" data-i18n="last30m">近30分钟</span></label><strong id="chainCandidates">0</strong><small id="chainCandidateDetail" data-i18n="notBuySignal">链上硬门通过，不代表应买入</small></article>
-      <article class="panel metric"><label><span data-i18n="manualPassedLabel">人工通过</span> <span class="scope" data-i18n="last30mLocal">近30分钟/本机</span></label><strong id="manualPassed">0</strong><small id="manualDetail" data-i18n="localOnlyNoTrade">仅本浏览器标记，不会下单</small></article>
+      <article class="panel metric"><label><span data-i18n="discoveredTokens">发现代币</span> <span class="scope" data-i18n="currentRound">本轮</span></label><strong id="discovered">0</strong><small data-i18n="gmgnReturned">本轮AVE返回数量</small></article>
+      <article class="panel metric" hidden aria-hidden="true"><label><span data-i18n="prequalifiedLabel">初筛通过</span> <span class="scope" data-i18n="currentRound">本轮</span></label><strong id="prequalified">0</strong><small id="prequalifiedDetail" data-i18n="awaitingAudit">等待或已进入深度审计</small></article>
+      <article class="panel metric" hidden aria-hidden="true"><label><span data-i18n="deepAuditLabel">深度审计</span> <span class="scope" data-i18n="last30m">近30分钟</span></label><strong id="audited">0</strong><small id="auditedDetail" data-i18n="auditSnapshots">当前保留的审计快照</small></article>
+      <article class="panel metric" hidden aria-hidden="true"><label><span data-i18n="chainCandidatesLabel">链上候选/待人工看X</span> <span class="scope" data-i18n="last30m">近30分钟</span></label><strong id="chainCandidates">0</strong><small id="chainCandidateDetail" data-i18n="notBuySignal">链上硬门通过，不代表应买入</small></article>
+      <article hidden><strong id="manualPassed">0</strong><small id="manualDetail"></small></article>
 
       <article class="panel wide">
         <div class="head"><h2 data-i18n="outcomeTitle">筛选后表现验证</h2><span data-i18n="shadowDisclaimer">影子观察，不代表可成交收益，也不作为交易指令</span></div>
@@ -793,10 +848,10 @@
         <div id="outcomeCoverage" class="manage-body muted"></div>
       </article>
 
-      <article class="panel wide">
+      <article class="panel wide" hidden aria-hidden="true">
         <div class="head">
           <h2 data-i18n="auditTitle">近30分钟深度审计</h2>
-          <span data-i18n="auditSubtitle">市值2万–8万优先 · 创建至少5分钟 · 系统按GMGN额度分批深审</span>
+          <span data-i18n="auditSubtitle">市值2万–8万优先 · 创建至少5分钟 · 系统按AVE额度分批深审</span>
         </div>
         <div class="toolbar" aria-label="候选筛选和排序" data-i18n-aria="toolbarAria">
           <input id="searchInput" class="field" type="search" autocomplete="off" placeholder="搜索代币名称、简称或合约地址" data-i18n-placeholder="searchPlaceholder">
@@ -804,7 +859,6 @@
             <option value="all" data-i18n="filterAll">全部审计记录</option>
             <option value="chain" data-i18n="filterChain">仅链上候选</option>
             <option value="waiting" data-i18n="filterWaiting">仅等待复查</option>
-            <option value="passed" data-i18n="filterPassed">仅人工通过</option>
             <option value="ignored" data-i18n="filterIgnored">仅已忽略</option>
             <option value="rejected" data-i18n="filterRejected">仅已排除</option>
             <option value="fresh" data-i18n="filterFresh">仅5分钟内审计</option>
@@ -828,46 +882,79 @@
       </article>
     </section>
 
+    </details>
     <div class="footer">
-      <span data-i18n="footerLocal">独立端口3791 · 只扫描、不交易 · 人工标记仅保存在当前浏览器。</span>
+      <span data-i18n="radarDisclaimer">自动筛选 · 观察线索，非安全保证</span>
     </div>
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <dialog id="updateDialog" aria-labelledby="updateTitle">
+    <h3 id="updateTitle" data-i18n="updateTitle">版本更新</h3>
+    <p id="updateVersion" class="mono"></p>
+    <p id="updateMessage" role="status" aria-live="polite"></p>
+    <p class="muted" data-i18n="updatePreserve">保留本机配置和记录；校验通过后重启，失败回滚。</p>
+    <div class="manage-actions">
+      <button id="updateInstall" class="mini-button" type="button" hidden data-i18n="updateInstall">确认更新并重启</button>
+      <button id="updateClose" class="mini-button" type="button" data-i18n="closeAction">关闭</button>
+    </div>
+  </dialog>
   <dialog id="noteDialog">
     <h3 data-i18n="editNote">编辑备注</h3><p id="noteAddress" class="mono"></p>
     <textarea id="noteInput" maxlength="500" aria-label="Note" data-i18n-aria="editNote"></textarea>
     <div class="manage-actions"><button id="saveNote" class="mini-button" data-i18n="saveNote">保存备注</button><button id="cancelNote" class="mini-button" data-i18n="cancelAction">取消</button></div>
   </dialog>
-  <dialog id="gmgnOnboardingDialog" class="onboarding-dialog">
-    <h3 data-i18n="gmgnOnboardingTitle">创建或更换 GMGN API</h3>
-    <p data-i18n="gmgnOnboardingIntro">每次创建新的 GMGN API Key，都必须重新完成 Agent 公钥绑定。Meme雷达只是在本机代为生成本次公钥，不会跳过这一步。</p>
-    <ol>
-      <li data-i18n="gmgnOnboardingStep1">复制下面的 Ed25519 公钥。</li>
-      <li data-i18n="gmgnOnboardingStep2">打开 GMGN 创建页面；如果没有自动填入，就粘贴公钥。</li>
-      <li data-i18n="gmgnOnboardingStep3">只开启“允许读取”，务必关闭“允许交易”。</li>
-      <li data-i18n="gmgnOnboardingStep4">创建后复制 API Key，回到 Meme 雷达粘贴并点击 ✓。</li>
-    </ol>
-    <textarea id="gmgnPublicKey" class="public-key-box" readonly spellcheck="false" aria-label="GMGN Public Key" data-i18n-aria="gmgnPublicKeyAria"></textarea>
-    <div class="manage-actions">
-      <button id="copyGmgnPublicKey" class="mini-button" type="button" disabled data-i18n="copyPublicKey">复制公钥</button>
-      <a id="openGmgnCreate" class="mini-button gmgn-create-link" href="https://gmgn.ai/ai/generateapi" target="_blank" rel="noopener noreferrer" aria-disabled="true" data-i18n="openGmgnCreate">打开 GMGN 创建页</a>
-      <button id="regenerateGmgnPublicKey" class="mini-button" type="button" data-i18n="regeneratePublicKey">重新生成本次公钥</button>
-    </div>
-    <p class="onboarding-security" data-i18n="gmgnOnboardingSecurity">私钥只保存在本机，不会显示在网页、日志或安装包中。不要把私钥文件发给任何人。</p>
-    <p id="gmgnOnboardingStatus" class="onboarding-status" role="status" aria-live="polite"></p>
-    <div class="manage-actions"><button id="closeGmgnOnboarding" class="mini-button" type="button" data-i18n="closeAction">关闭</button></div>
-  </dialog>
 
   <script type="module" src="/voice-ui.mjs"></script>
+  <script type="module" src="/update-ui.mjs"></script>
   <script>
     const byId = function (id) { return document.getElementById(id); };
     const supportedLocales = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko', 'ar'];
     const messages = {
+      voiceSpotlightPlaying: ["正在语音提醒","正在語音提醒","Voice alert playing","音声通知中","음성 알림 재생 중","جارٍ تشغيل التنبيه الصوتي"],
+      voiceSpotlightRecent: ["最近语音提醒","最近語音提醒","Latest voice alert","直近の音声通知","최근 음성 알림","آخر تنبيه صوتي"],
+      voiceSpotlightInterrupted: ["语音播放已中断","語音播放已中斷","Voice playback interrupted","音声再生が中断されました","음성 재생 중단됨","توقف تشغيل التنبيه الصوتي"],
+      voiceSpotlightDismiss: ["收起提示","收起提示","Dismiss card","カードを閉じる","알림 카드 닫기","إغلاق البطاقة"],
+      voiceSpotlightLocate: ["查看候选","查看候選","Locate candidate","候補を見る","후보 보기","عرض المرشح"],
+      voiceSpotlightCount: ["本次 {n} 枚","本次 {n} 枚","{n} in this alert","今回 {n} 件","이번 알림 {n}개","{n} في هذا التنبيه"],
+      voiceSpotlightQueue: ["选择本次提醒代币","選擇本次提醒代幣","Select an alerted token","今回の通知トークンを選択","알림 토큰 선택","اختر عملة من هذا التنبيه"],
+      voiceSpotlightHint: ["本次提醒候选已进入统一池并置顶；不会自动下单。","本次提醒候選已進入統一池並置頂；不會自動下單。","Alerted candidates are pinned in the unified pool; no automatic orders.","通知候補は統合プールの先頭に表示されます。自動注文はしません。","알림 후보가 통합 풀 상단에 고정됩니다. 자동 주문은 하지 않습니다.","تُثبّت العملات المنبّه عنها في المجموعة الموحدة؛ ولا تُنفّذ أوامر تلقائية."],
+      voiceSpotlightReady: ["已提醒 · 已置顶","已提醒 · 已置頂","Alerted · Pinned first","通知済み・先頭表示","알림 완료 · 상단 고정","تم التنبيه · مثبت أولًا"],
+      voiceSpotlightFiltered: ["当前筛选未显示 · 点击查看可定位","目前篩選未顯示 · 點擊查看可定位","Hidden by current filters · Locate to view","現在のフィルターで非表示・候補を見るをクリック","현재 필터로 숨겨짐 · 후보 보기로 이동","تخفيه المرشحات الحالية · اضغط لعرضه"],
+      voiceSpotlightIgnored: ["已忽略 · 不再置顶","已忽略 · 不再置頂","Ignored · No longer pinned","無視済み・先頭表示を解除","무시됨 · 상단 고정 해제","تم تجاهله · لم يعد مثبتًا"],
+      voiceSpotlightRejected: ["已被过滤 · 不再置顶","已被過濾 · 不再置頂","Filtered out · No longer pinned","除外済み・先頭表示を解除","필터링됨 · 상단 고정 해제","تم استبعاده · لم يعد مثبتًا"],
+      voiceSpotlightOffline: ["连接中断 · 暂不置顶","連線中斷 · 暫不置頂","Offline · Pinning paused","接続切断・先頭表示を停止","연결 끊김 · 상단 고정 일시 중지","الاتصال منقطع · التثبيت متوقف"],
+      voiceSpotlightMissing: ["已不在当前候选范围","已不在目前候選範圍","No longer in the candidate scope","現在の候補範囲にありません","현재 후보 범위에 없음","لم يعد ضمن نطاق المرشحين"],
+      voiceSpotlightExpired: ["提醒或证据已过期 · 请重新复核","提醒或證據已過期 · 請重新複核","Alert or evidence expired · Review again","通知または証拠の期限切れ・再確認してください","알림 또는 증거 만료 · 다시 검토하세요","انتهت صلاحية التنبيه أو الأدلة · راجع مجددًا"],
+      voiceSpotlightChanged: ["条件已变化 · 等待重新复核","條件已變化 · 等待重新複核","Conditions changed · Awaiting review","条件が変化・再確認待ち","조건 변경 · 재검토 대기","تغيّرت الشروط · بانتظار إعادة المراجعة"],
+      voiceSpotlightRow: ["本次语音提醒","本次語音提醒","This voice alert","今回の音声通知","이번 음성 알림","هذا التنبيه الصوتي"],
+      updateButton: ["一键更新","一鍵更新","Update","更新","업데이트","تحديث"],
+      updateTitle: ["版本更新","版本更新","App update","バージョン更新","버전 업데이트","تحديث التطبيق"],
+      updateInstall: ["确认更新并重启","確認更新並重啟","Update and restart","更新して再起動","업데이트 후 재시작","تحديث وإعادة تشغيل"],
+      updatePreserve: ["保留配置与记录；校验后重启，失败回滚。","保留設定與記錄；驗證後重啟，失敗回復。","Settings and records stay; verified updates restart, with rollback on failure.","設定と記録を保持。検証後に再起動、失敗時は復元。","설정·기록 유지. 검증 후 재시작, 실패 시 복구.","تُحفظ الإعدادات والسجلات؛ إعادة التشغيل بعد التحقق والتراجع عند الفشل."],
+      aveBudgetPaused: ["本机预算已用完","本機預算已用完","Local budget exhausted","本機の予算を消費","로컬 예산 소진","نفدت الميزانية المحلية"],
+      aveHourlyPaused: ["本小时预算暂缓","本小時預算暫緩","Hourly budget pause","時間予算による一時停止","시간 예산 일시정지","توقف ميزانية الساعة"],
+      aveTotalPaused: ["总预算已用完，需核对额度","總預算已用完，需核對額度","Total budget exhausted; verify quota","総予算終了・残量を確認","총 예산 소진 · 할당량 확인","نفدت الميزانية الإجمالية؛ تحقق من الحصة"],
+      aveQuotaPaused: ["AVE 配额暂停","AVE 配額暫停","AVE quota pause","AVE クォータ停止","AVE 할당량 일시정지","توقف حصة AVE"],
+      aveBudgetLine: ["本机估算 · 总剩余 {remaining}/{total} CU · 今日 {used}/{limit} · 本小时 {hourUsed}/{hourLimit}","本機估算 · 總剩餘 {remaining}/{total} CU · 今日 {used}/{limit} · 本小時 {hourUsed}/{hourLimit}","Local estimate · Remaining {remaining}/{total} CU · Today {used}/{limit} · This hour {hourUsed}/{hourLimit}","本機推定 · 残量 {remaining}/{total} CU · 本日 {used}/{limit} · 今時間 {hourUsed}/{hourLimit}","로컬 추정 · 잔여 {remaining}/{total} CU · 오늘 {used}/{limit} · 이번 시간 {hourUsed}/{hourLimit}","تقدير محلي · المتبقي {remaining}/{total} CU · اليوم {used}/{limit} · الساعة {hourUsed}/{hourLimit}"],
+      aveBudgetHint: ["非账户余额；总预算不自动清零。全局热榜请求每5分钟最多发起1次，429后放慢至8–15分钟。","非帳戶餘額；總預算不自動清零。全域熱榜請求每5分鐘最多發起1次，429後放慢至8–15分鐘。","Not the account balance; total usage never auto-resets. Global leaderboard reads start at most once every 5 min and back off to 8–15 min after 429.","口座残高ではなく、総使用量は自動リセットされません。ランキング取得は全体で5分に最大1回開始し、429後は8〜15分に延長します。","계정 잔액이 아니며 총 사용량은 자동 초기화되지 않습니다. 전체 인기 목록 요청은 5분마다 최대 1회 시작하고 429 후에는 8~15분으로 늘어납니다.","ليس رصيد الحساب؛ لا يُصفّر الإجمالي تلقائيًا. يبدأ طلب قائمة رائجة واحد عالميًا كحد أقصى كل 5 دقائق، ويتراجع إلى 8–15 دقيقة بعد 429."],
+      aveDiagnostics: ['连接诊断','連線診斷','Connection diagnostics','接続診断','연결 진단','تشخيص الاتصال'],
+      aveTransport: ['完成后间隔 {seconds} 秒 · 退避级别 {level}','完成後間隔 {seconds} 秒 · 退避級別 {level}','Completion gap {seconds}s · Backoff level {level}','完了後の間隔 {seconds}秒 · バックオフ {level}','완료 후 간격 {seconds}초 · 백오프 {level}','فاصل بعد الاكتمال {seconds} ثانية · مستوى الانتظار {level}'],
+      aveRetryReady: ['冷却结束，等待复查','冷卻結束，等待複查','Cooldown ended; awaiting recheck','待機終了・再確認待ち','대기 종료 · 재확인 대기','انتهى الانتظار؛ بانتظار التحقق'],
+      aveRetryAt: ['自动复查不早于 {time}','自動複查不早於 {time}','Automatic recheck no earlier than {time}','{time}以降に自動再確認','{time} 이후 자동 재확인','إعادة التحقق تلقائيًا بعد {time}'],
+      avePartial: ['部分行情待补读','部分行情待補讀','Some market data pending','一部データは再取得待ち','일부 시세 재조회 대기','بعض البيانات بانتظار الاستكمال'],
+      aveReason_ok: ['返回成功','返回成功','Response received','応答成功','응답 성공','تم استلام الرد'],
+      aveReason_rate: ['频率限制提示','頻率限制提示','Rate-limit indication','頻度制限の通知','빈도 제한 안내','إشارة تقييد المعدل'],
+      aveReason_quota: ['额度限制提示','額度限制提示','Quota indication','割当上限の通知','할당량 제한 안내','إشارة حد الحصة'],
+      aveReason_gateway: ['网关限制提示','閘道限制提示','Gateway restriction indication','ゲートウェイ制限の通知','게이트웨이 제한 안내','إشارة تقييد البوابة'],
+      aveReason_unknown: ['原因未明确','原因未明確','Reason unspecified','原因不明','원인 미확인','السبب غير محدد'],
+      aveReason_timeout: ['响应超时','回應逾時','Response timeout','応答タイムアウト','응답 시간 초과','انتهت مهلة الرد'],
+      aveReason_cancelled: ['已取消','已取消','Cancelled','キャンセル済み','취소됨','أُلغي'],
+      poolAge: ["池龄 / 开始交易","池齡 / 開始交易","Pool / trading age","プール / 取引開始","풀 / 거래 기간","عمر المجمع / التداول"],
+      launchAge: ["上线 / 开始交易","上線 / 開始交易","Launch / trading age","上場 / 取引開始","출시 / 거래 기간","عمر الإطلاق / التداول"],
       aveDataService: ['行情服务','行情服務','Market data','相場サービス','시세 서비스','خدمة بيانات السوق'],
       aveTradeService: ['交易服务（只读检查）','交易服務（唯讀檢查）','Trading service (read-only check)','取引サービス（読み取り確認）','거래 서비스 (읽기 전용 확인)','خدمة التداول (فحص للقراءة فقط)'],
-      aveApiHelp: ['检测行情和交易服务连接。不签名、不下单。','檢測行情和交易服務連線。不簽名、不下單。','Check market-data and trading-service connections. No signing or orders.','相場と取引サービスの接続を確認。署名・注文なし。','시세·거래 서비스 연결을 확인합니다. 서명·주문 없음.','فحص الاتصال بخدمتي البيانات والتداول. دون توقيع أو أوامر.'],
-      aveApiCost: ['行情测试约 5 CU；交易服务仅查 Gas，不代表已具备下单能力。保存后可留空重测。','行情測試約 5 CU；交易服務僅查 Gas，不代表可下單。儲存後可留空重測。','Data check: about 5 CU. Trading check queries Gas only, not order permission. Leave blank to retest a saved key.','相場テスト約5 CU。取引テストはGas取得のみで、注文権限の確認ではありません。保存後は空欄で再テストできます。','시세 테스트 약 5 CU. 거래 테스트는 Gas 조회이며 주문 권한 확인이 아닙니다. 저장 후 빈칸으로 재테스트 가능.','اختبار البيانات نحو 5 CU. فحص التداول يستعلم Gas فقط ولا يؤكد صلاحية الطلبات. اتركه فارغًا لإعادة اختبار المفتاح المحفوظ.'],
+      aveApiHelp: ["AVE 负责发现、池行情与 K 线。安全证据不足时不放行。","AVE 負責發現、池行情與 K 線。安全證據不足時不放行。","AVE powers discovery, pools and candles. Missing safety evidence never passes.","AVEで発見・プール・足データを取得。安全証拠不足は保留。","AVE로 발견·풀·캔들을 조회합니다. 안전 증거 부족은 보류합니다.","AVE للاكتشاف والمجمعات والشموع. لا يُقبل نقص أدلة الأمان."],
       aveKeySaved: ['Key 已保存','Key 已儲存','Key saved','キー保存済み','키 저장됨','تم حفظ المفتاح'],
       aveReentry: ['请重新填写并验证 AVE API Key','請重新填寫並驗證 AVE API Key','Re-enter and verify your AVE API Key.','AVE APIキーを再入力して検証してください。','AVE API 키를 다시 입력하고 확인하세요.','أعد إدخال مفتاح AVE API والتحقق منه.'],
       aveTest: ['保存 / 测试','儲存 / 測試','Save / test','保存 / テスト','저장 / 테스트','حفظ / اختبار'],
@@ -878,32 +965,53 @@
       aveChecked: ['只读测试通过','唯讀測試通過','Read-only check passed','読み取りテスト完了','읽기 전용 테스트 통과','نجح اختبار القراءة فقط'],
       aveChecking: ['测试中…','測試中…','Testing…','テスト中…','테스트 중…','جارٍ الاختبار…'],
       aveFailed: ['连接未通过','連線未通過','Connection check failed','接続テスト失敗','연결 테스트 실패','فشل اختبار الاتصال'],
-      liveTitle: ['即时发现 · 1分钟活跃榜','即時發現 · 1分鐘活躍榜','Live discovery · 1-minute activity','即時発見 · 1分間の取引動向','즉시 발견 · 1분 활동','اكتشاف سريع · نشاط دقيقة'],
+      liveTitle: ['候选雷达','候選雷達','Candidate radar','候補レーダー','후보 레이더','رادار المرشحين'],
+      advancedTitle: ['设置与运行记录','設定與執行記錄','Settings & activity','設定と履歴','설정 및 활동','الإعدادات والنشاط'],
+      autoScreenPassed: ['自动筛选通过','自動篩選通過','Auto-screen passed','自動選別通過','자동 선별 통과','اجتاز الفرز الآلي'],
+      autoScreenWaiting: ['资料待补全','資料待補全','Missing evidence','データ待ち','자료 대기','بيانات ناقصة'],
+      screenDetails: ['筛选详情','篩選詳情','Screening details','選別詳細','선별 세부 정보','تفاصيل الفرز'],
+      liveBrief: ['{n} 个线索 · 采样 {time}','{n} 個線索 · 採樣 {time}','{n} leads · sampled {time}','{n}件 · 取得 {time}','{n}개 · 수집 {time}','{n} نتائج · التقطت {time}'],
+      liveCap: ['市值','市值','Market cap','時価総額','시가총액','القيمة السوقية'],
+      liveLp: ['流动性','流動性','Liquidity','流動性','유동성','السيولة'],
+      radarDisclaimer: ['自动筛选 · 观察线索，非安全保证','自動篩選 · 觀察線索，非安全保證','Automatic screening · Signals, not a safety guarantee','自動選別・安全性を保証しません','자동 필터링 · 안전 보장 아님','فحص تلقائي · إشارات وليست ضمانًا للأمان'],
       liveWarning: ['先发现，再核验。未完成深审，不代表安全或买入建议。','先發現，再核驗。未完成深審，不代表安全或買入建議。','Discover first, verify next. Not fully audited; neither safe nor a buy recommendation.','発見後に検証。詳細審査前であり、安全性や購入の推奨ではありません。','발견 후 검증. 심층 감사 전이며 안전 보장이나 매수 추천이 아닙니다.','اكتشاف ثم تحقق. لا يعني الأمان أو توصية بالشراء قبل التدقيق.'],
       liveAuto: ['自动更新','自動更新','Auto-update','自動更新','자동 업데이트','تحديث تلقائي'],
       liveSort: ['发现排序','發現排序','Discovery order','発見の並び順','발견 정렬','ترتيب الاكتشاف'],
       livePriority: ['2–8万市值优先','2–8萬市值優先','$20–80K cap first','時価総額2～8万ドル優先','시총 2~8만 달러 우선','أولوية لقيمة 20–80 ألف دولار'],
-      liveVolumeSort: ['1分钟成交额优先','1分鐘成交額優先','1-minute volume first','1分出来高優先','1분 거래액 우선','حجم الدقيقة أولًا'],
-      liveNewSort: ['最近新进榜','最近新進榜','New to this feed','新規掲載順','최근 새 진입','المنضمون حديثًا'],
+      liveVolumeSort: ["5分钟成交额优先","5分鐘成交額優先","5m volume first","5分出来高優先","5분 거래액 우선","حجم 5 دقائق أولًا"],
+      liveNewSort: ['最近出现','最近出現','Most recent','新しい順','최근 발견','الأحدث ظهورًا'],
+      livePending: ['待补行情','待補行情','Awaiting market data','相場データ待ち','시세 데이터 대기','بانتظار بيانات السوق'],
+      liveFetching: ['补充中','補充中','Loading','取得中','불러오는 중','جارٍ الاستكمال'],
+      liveEligible: ['可核验','可核驗','Ready for review','検証可能','검토 가능','جاهز للتحقق'],
+      liveCoverage: ['收到 {received} · 范围内 {scope} · 待补 {pending} · 待更新 {stale} · 可核验 {ready} · 已过滤 {excluded}',
+        '收到 {received} · 範圍內 {scope} · 待補 {pending} · 待更新 {stale} · 可核驗 {ready} · 已過濾 {excluded}',
+        'Received {received} · In scope {scope} · Pending {pending} · Stale {stale} · Reviewable {ready} · Filtered {excluded}',
+        '受信 {received} · 対象 {scope} · データ待ち {pending} · 更新待ち {stale} · 検証可能 {ready} · 除外 {excluded}',
+        '수신 {received} · 범위 내 {scope} · 대기 {pending} · 갱신 대기 {stale} · 검토 가능 {ready} · 제외 {excluded}',
+        'وارد {received} · ضمن النطاق {scope} · انتظار {pending} · قديم {stale} · قابل للتحقق {ready} · مستبعد {excluded}'],
+      liveNoScope: ['本轮热榜没有符合市值范围的代币','本輪熱榜沒有符合市值範圍的代幣','No tokens in this trending sample match the market-cap range','今回のランキングに時価総額条件を満たすトークンはありません','이번 인기 목록에 시총 범위에 맞는 토큰 없음','لا رموز ضمن نطاق القيمة السوقية في هذه العينة'],
+      liveExcluded: ['本轮范围内代币未通过筛选；风险币不会补位','本輪範圍內代幣未通過篩選；風險幣不補位','In-scope tokens failed screening; risky tokens are not substituted','対象トークンは条件未達。リスク銘柄で補完しません','범위 내 토큰 필터 미통과; 위험 토큰으로 채우지 않음','لم تجتز الرموز ضمن النطاق الفحص؛ لا نعوضها برموز خطرة'],
+      liveFilteredEmpty: ['当前筛选没有结果','目前篩選沒有結果','No matches for this filter','このフィルターの結果はありません','현재 필터 결과 없음','لا نتائج لهذا المرشح'],
+      liveShowAll: ['查看本轮全部','查看本輪全部','Show all in this round','今回の全件を表示','이번 회차 전체 보기','عرض جميع نتائج الجولة'],
       liveNew: ['新进榜','新進榜','New arrival','新規掲載','새 진입','جديد بالقائمة'],
       liveReady: ['发现流已更新','發現流已更新','Feed updated','更新済み','목록 업데이트됨','تم تحديث القائمة'],
       livePaused: ['已暂停自动更新','已暫停自動更新','Auto-update paused','自動更新停止中','자동 업데이트 중지','التحديث متوقف'],
       livePolling: ['正在获取短周期榜单','正在取得短週期榜單','Fetching short-window ranking','短周期ランキング取得中','단기 순위 가져오는 중','جارٍ جلب ترتيب قصير المدى'],
       liveStale: ['数据已旧，请等待更新','資料已舊，請等待更新','Stale data; wait for update','古いデータ・更新待ち','오래된 데이터; 업데이트 대기','بيانات قديمة؛ انتظر التحديث'],
-      liveMeta: ['{chain} · 目标每20秒轮询；实际更新：{time} · 显示{shown}/{total} · 限流与排队可能延后','{chain} · 目標每20秒輪詢；實際更新：{time} · 顯示{shown}/{total} · 限流與排隊可能延後','{chain} · Target: 20s polling; last update: {time} · {shown}/{total} shown · Limits/queue may delay updates','{chain} · 目標20秒間隔・更新: {time} · {shown}/{total}表示・制限や待ち行列で遅延あり','{chain} · 목표 20초 간격; 업데이트: {time} · {shown}/{total} 표시 · 제한/대기로 지연 가능','{chain} · الهدف كل 20 ثانية؛ آخر تحديث: {time} · عرض {shown}/{total} · قد تتأخر الطلبات'],
+      liveMeta: ["{chain} · 采样 {time} · 显示 {shown}/{total}","{chain} · 採樣 {time} · 顯示 {shown}/{total}","{chain} · Sample {time} · {shown}/{total} shown","{chain} · 取得 {time} · {shown}/{total}表示","{chain} · 수집 {time} · {shown}/{total} 표시","{chain} · العينة {time} · عرض {shown}/{total}"],
       liveEmpty: ['本轮没有可展示的线索，或筛选后为空。不会用旧币或演示数据补位。','本輪沒有可展示的線索，或篩選後為空。不以舊幣或演示資料補位。','No matching leads in this snapshot. No stale or demo tokens are inserted.','該当候補なし。古いデータやデモで補完しません。','현재 일치하는 단서 없음. 오래된/데모 데이터를 채우지 않습니다.','لا نتائج مطابقة الآن؛ لا نملأ القائمة ببيانات قديمة أو تجريبية.'],
-      liveVolume: ['1分钟成交额','1分鐘成交額','1m volume','1分出来高','1분 거래액','حجم دقيقة'],
+      liveVolume: ["5分钟成交额","5分鐘成交額","5m volume","5分出来高","5분 거래액","حجم 5 دقائق"],
       ageLabel: ['币龄','幣齡','Token age','トークン経過時間','토큰 나이','عمر الرمز'],
-      liveTrades: ['1分钟买 / 卖笔数','1分鐘買 / 賣筆數','1m buy / sell count','1分買い / 売り回数','1분 매수 / 매도 건수','عدد شراء / بيع بدقيقة'],
-      liveSmart: ['GMGN标记聪明钱 / 持有人','GMGN標記聰明錢 / 持有人','GMGN-tagged smart / holders','GMGN分類SM / 保有者','GMGN 표시 스마트 / 보유자','ذكي بتصنيف GMGN / حاملوه'],
+      liveTrades: ["5分钟买 / 卖","5分鐘買 / 賣","5m buys / sells","5分買い / 売り","5분 매수 / 매도","شراء / بيع 5 دقائق"],
+      liveSmart: ['AVE标记聪明钱 / 持有人','AVE標記聰明錢 / 持有人','AVE-tagged smart / holders','AVE分類SM / 保有者','AVE 표시 스마트 / 보유자','ذكي بتصنيف AVE / حاملوه'],
       liveDelta: ['两次快照涨跌（{seconds}秒）','兩次快照漲跌（{seconds}秒）','Snapshot price change ({seconds}s)','前回比（{seconds}秒）','스냅샷 가격 변화 ({seconds}초)','تغير السعر بين لقطتين ({seconds}ث)'],
-      liveUnreviewed: ['尚未深审；权限、LP与真人情况待核验','尚未深審；權限、LP與真人情況待核驗','Not audited: authorities, LP and organic activity unverified','詳細審査前：権限・LP・実活動は未検証','미감사: 권한, LP, 실제 활동 미검증','لم يُدقق: الصلاحيات وLP والنشاط الحقيقي غير متحقق'],
+      liveUnreviewed: ['观察中','觀察中','Watching','監視中','관찰 중','قيد الرصد'],
       liveAudit: ['排队核验','排隊核驗','Queue audit','審査を予約','감사 대기 등록','طلب تدقيق'],
       liveAuditQueued: ['已排队，按原安全门槛审核；不会下单','已排隊，按原安全門檻審核；不會下單','Queued under unchanged safety rules; no trading','同じ安全基準で審査待ち。取引しません','기존 안전 규칙으로 대기; 거래 없음','في الطابور وفق قواعد الأمان نفسها؛ بلا تداول'],
       liveAuditScope: ['需先启用该链扫描，且通过原初筛；未知证据不算通过','須先啟用該鏈掃描並通過原初篩；未知證據不算通過','Enable scanning for this chain and pass the existing prefilter; unknown is not safe','対象チェーンのスキャン有効化と既存初期条件の通過が必要','해당 체인 스캔 활성화 및 기존 사전 필터 통과 필요','فعّل مسح الشبكة واجتز الفلتر الأولي؛ المجهول ليس آمنًا'],
       liveAuditDenied: ['暂不能排队：证据已旧、超出原初筛范围或已被安全拒绝','暫不能排隊：證據已舊、超出原初篩範圍或已被安全拒絕','Cannot queue: stale, outside prefilter or safety-rejected','予約不可：古い証拠・対象外・安全上除外','대기 불가: 오래됨, 범위 밖 또는 안전 거부','تعذر الطلب: بيانات قديمة أو خارج الفلتر أو مرفوض أمنيًا'],
       liveQueueFull: ['核验队列已满，请先等待已有请求完成','核驗佇列已滿，請先等待已有請求完成','Audit queue full; wait for pending requests','審査予約が満杯です。完了をお待ちください','감사 대기열 가득 참; 기존 요청 완료 대기','طابور التدقيق ممتلئ؛ انتظر انتهاء الطلبات'],
-      liveLimits: ['仅页面可见时更新；新进榜不是新发币；热度不是安全证明。','僅頁面可見時更新；新進榜不是新發幣；熱度不是安全證明。','Updates while visible. New arrival ≠ newly minted. Activity is not proof of safety.','表示中のみ更新。新規掲載≠新発行。活発さは安全の証明ではありません。','페이지 표시 중 업데이트. 새 진입 ≠ 신규 발행. 활동은 안전 증명이 아닙니다.','يُحدّث أثناء ظهور الصفحة. جديد بالقائمة لا يعني حديث الإصدار. النشاط لا يثبت الأمان.'],
+      liveLimits: ['全局每5分钟最多发起1条链的热榜请求；多链轮询。429后改为8分钟（必要时15分钟）；5分钟档失败后24小时内不再试探。','全域每5分鐘最多發起1條鏈的熱榜請求；多鏈輪詢。429後改為8分鐘（必要時15分鐘）；5分鐘檔失敗後24小時內不再試探。','Globally, at most one chain leaderboard request starts every 5 min; chains rotate. HTTP 429 backs off to 8 min (15 if needed); after a failed 5-min probe, that cadence is not tried again for 24 h.','全体で5分に最大1チェーンのランキング取得を開始し、複数チェーンは巡回します。429時は8分（必要なら15分）に延長し、5分間隔の試行失敗後24時間は同じ間隔を再試行しません。','전체에서 5분마다 체인 1개의 인기 목록 요청만 시작하며 여러 체인은 순환합니다. 429 발생 시 8분(필요하면 15분)으로 늘리고, 5분 간격 시도 실패 후 24시간 동안 같은 간격을 다시 시도하지 않습니다.','يبدأ عالميًا طلب قائمة رائجة لسلسلة واحدة كحد أقصى كل 5 دقائق، مع التناوب بين السلاسل. عند 429 يتراجع إلى 8 دقائق (15 عند الحاجة)، وبعد فشل تجربة فاصل 5 دقائق لا يعيد تجربة هذا الفاصل لمدة 24 ساعة.'],
       manageTitle: ['⚙ 扫描设置与记录','⚙ 掃描設定與記錄','⚙ Scan settings & records','⚙ スキャン設定と記録','⚙ 스캔 설정 및 기록','⚙ إعدادات المسح والسجلات'],
       skippedAfterReject: ['安全项已拒绝，后续检查已跳过','安全項已拒絕，後續檢查已略過','Safety rejection; further checks skipped','安全項目で除外。後続チェックは省略','안전 항목에서 제외; 후속 검사 생략','رُفض لأسباب أمنية؛ تم تخطي الفحوص اللاحقة'],
       scanSelectionHelp: ['选择1–3条链轮询，共享接口额度；多链时上方标签只切换查看。','選擇1–3條鏈輪詢，共享額度；多鏈時上方標籤只切換檢視。','Poll 1–3 chains with a shared request budget; tabs change the view in multi-chain mode.','1～3チェーンを共通枠で巡回。複数チェーン時のタブは表示切替のみ。','공유 요청 한도로 1~3개 체인을 순환합니다. 다중 모드의 탭은 보기만 전환합니다.','استطلع 1–3 شبكات بميزانية طلبات مشتركة؛ التبويبات تغيّر العرض في الوضع المتعدد.'],
@@ -913,7 +1021,7 @@
       alertLimit: ['桌面提醒需要本页保持打开并允许通知；静音后仍保留页面事件。','桌面提醒需保持本頁開啟並允許通知；靜音仍保留頁面事件。','Desktop alerts require this page to stay open and notification permission. Muting keeps the event history.','通知にはページを開いたままにし、通知権限が必要です。ミュート後も履歴は残ります。','알림은 페이지를 열어두고 권한을 허용해야 합니다. 음소거해도 기록은 유지됩니다.','تتطلب التنبيهات بقاء الصفحة مفتوحة وإذن الإشعارات. يبقى السجل عند الكتم.'],
       exportRecords: ['导出记录','匯出記錄','Export records','記録を書き出す','기록 내보내기','تصدير السجلات'],
       disconnectApi: ['清除并断开 API','清除並中斷 API','Clear & disconnect API','APIを削除・切断','API 삭제 및 연결 해제','مسح وفصل API'],
-      disconnectConfirm: ['清除本项目保存的 Key 并停止扫描？不会再回退使用旧 Key；全局 GMGN 配置不修改。','清除本專案 Key 並停止掃描？不再回退舊 Key；全域設定不修改。','Clear this project’s key and stop scanning? Legacy-key fallback will stay disabled. Global config is untouched.','このプロジェクトのキーを削除し停止しますか？旧キーに戻りません。全体設定は変更しません。','프로젝트 키를 삭제하고 중지할까요? 이전 키로 복귀하지 않으며 전역 설정은 유지합니다.','مسح مفتاح المشروع وإيقاف المسح؟ لن يُستخدم المفتاح القديم ولن يتغير الإعداد العام.'],
+      disconnectConfirm: ['清除本项目保存的 Key 并停止扫描？不会再回退使用旧 Key；全局 AVE 配置不修改。','清除本專案 Key 並停止掃描？不再回退舊 Key；全域設定不修改。','Clear this project’s key and stop scanning? Legacy-key fallback will stay disabled. Global config is untouched.','このプロジェクトのキーを削除し停止しますか？旧キーに戻りません。全体設定は変更しません。','프로젝트 키를 삭제하고 중지할까요? 이전 키로 복귀하지 않으며 전역 설정은 유지합니다.','مسح مفتاح المشروع وإيقاف المسح؟ لن يُستخدم المفتاح القديم ولن يتغير الإعداد العام.'],
       savedNotes: ['收藏与备注','收藏與備註','Favorites & notes','お気に入りとメモ','즐겨찾기 및 메모','المفضلة والملاحظات'],
       favorite: ['收藏','收藏','Favorite','お気に入り','즐겨찾기','مفضلة'],
       unfavorite: ['取消收藏','取消收藏','Unfavorite','お気に入り解除','즐겨찾기 해제','إلغاء المفضلة'],
@@ -926,10 +1034,10 @@
       chainSelectionInvalid: ['请选择1–3条链','請選擇1–3條鏈','Select 1–3 chains','1～3チェーンを選択','1~3개 체인을 선택하세요','اختر 1–3 شبكات'],
       schedulerSummary: ['轮询：{chains} · 正在处理：{current}','輪詢：{chains} · 正在處理：{current}','Polling: {chains} · Processing: {current}','巡回: {chains} · 処理中: {current}','순환: {chains} · 처리 중: {current}','الاستطلاع: {chains} · المعالجة: {current}'],
       coverageDual: ['双源已接入','雙源已接入','Secondary sources wired','複数ソース接続済み','보조 데이터 연결됨','مصادر إضافية موصولة'],
-      coverageSingle: ['仅GMGN，需人工核验','僅GMGN，需人工核驗','GMGN only; manual verification','GMGNのみ・手動確認が必要','GMGN만 지원; 수동 검증 필요','GMGN فقط؛ يلزم التحقق اليدوي'],
+      coverageSingle: ['仅AVE数据','僅AVE資料','AVE data only','AVEデータのみ','AVE 데이터만','بيانات AVE فقط'],
       coverageLine: ['{window}：到期{eligible} / 完成{completed} / 缺失{missing} · 中位涨跌{median}','{window}：到期{eligible} / 完成{completed} / 缺失{missing} · 中位漲跌{median}','{window}: due {eligible} / complete {completed} / missing {missing} · median {median}','{window}: 対象{eligible} / 完了{completed} / 欠損{missing} · 中央値{median}','{window}: 도래 {eligible} / 완료 {completed} / 누락 {missing} · 중앙값 {median}','{window}: مستحق {eligible} / مكتمل {completed} / مفقود {missing} · الوسيط {median}'],
       rejectedCohort: ['拒绝组抽样对照','拒絕組抽樣對照','Sampled rejected cohort','除外群の抽出比較','제외 표본 비교','عينة المجموعة المرفوضة'],
-      newCandidateAlert: ['发现新候选，请人工复核','發現新候選，請人工複核','New candidate; review manually','新候補・手動確認が必要','새 후보 발견; 수동 확인 필요','مرشح جديد؛ راجعه يدويًا'],
+      newCandidateAlert: ['发现新候选，已加入候选池','發現新候選，已加入候選池','New candidate added to the pool','新しい候補をプールに追加','새 후보가 풀에 추가됨','تمت إضافة مرشح جديد إلى المجموعة'],
       riskAlert: ['风险或证据状态恶化，请重新复核','風險或證據狀態惡化，請重新複核','Risk or evidence worsened; review again','リスク・証拠状態が悪化。再確認してください','위험 또는 근거 상태 악화; 재검토 필요','تدهورت المخاطر أو الأدلة؛ راجع مجددًا'],
       failureAlert: ['扫描长时间未成功，请检查连接','掃描長時間未成功，請檢查連線','No successful scan for an extended period; check connectivity','スキャン成功が長時間ありません。接続を確認してください','장시간 스캔 성공 없음; 연결 확인 필요','لم ينجح المسح منذ فترة؛ تحقق من الاتصال'],
       notificationUnavailable: ['浏览器未允许通知，页面事件仍可查看','瀏覽器未允許通知，仍可查看頁面事件','Notifications unavailable; in-page events remain available','通知を利用できません。ページ内履歴は表示されます','알림을 사용할 수 없습니다. 페이지 기록은 유지됩니다','الإشعارات غير متاحة؛ تبقى أحداث الصفحة'],
@@ -942,47 +1050,30 @@
       chainAria: ['扫描链路切换', '掃描鏈路切換', 'Scan chain switcher', 'スキャンチェーン切替', '스캔 체인 전환', 'مبدّل شبكة المسح'],
       chainTitle: ['扫描链路', '掃描鏈路', 'Scan chain', 'スキャン対象', '스캔 체인', 'شبكة المسح'],
       chainLoading: ['正在读取后端支持的链', '正在讀取後端支援的鏈', 'Reading supported chains', '対応チェーンを読み込み中', '지원 체인 확인 중', 'جارٍ قراءة الشبكات المدعومة'],
-      gmgnApiLabel: ['GMGN API', 'GMGN API', 'GMGN API', 'GMGN API', 'GMGN API', 'واجهة GMGN'],
+      gmgnApiLabel: ['AVE API', 'AVE API', 'AVE API', 'AVE API', 'AVE API', 'واجهة AVE'],
       gmgnApiPlaceholder: ['输入 API Key', '輸入 API Key', 'Enter API key', 'APIキーを入力', 'API 키 입력', 'أدخل مفتاح API'],
-      gmgnApiSubmitAria: ['确认并连接 GMGN API', '確認並連接 GMGN API', 'Confirm and connect GMGN API', 'GMGN APIを確認して接続', 'GMGN API 확인 및 연결', 'تأكيد وربط واجهة GMGN'],
+      gmgnApiSubmitAria: ['确认并连接 AVE API', '確認並連接 AVE API', 'Confirm and connect AVE API', 'AVE APIを確認して接続', 'AVE API 확인 및 연결', 'تأكيد وربط واجهة AVE'],
       gmgnApiSubmitText: ['确认', '確認', 'Confirm', '確認', '확인', 'تأكيد'],
       gmgnApiLocalOnly: ['仅发往本机', '僅傳送至本機', 'Sent locally only', 'ローカル送信のみ', '로컬로만 전송', 'يُرسل محليًا فقط'],
       gmgnApiRequired: ['请输入 API Key', '請輸入 API Key', 'Enter an API key', 'APIキーを入力してください', 'API 키를 입력하세요', 'أدخل مفتاح API'],
       gmgnApiConnecting: ['正在连接……', '正在連接……', 'Connecting…', '接続中…', '연결 중…', 'جارٍ الاتصال…'],
       gmgnApiConnected: ['已连接，正在安排扫描', '已連接，正在安排掃描', 'Verified; scan requested', '確認済み。スキャンを開始します', '검증 완료, 스캔 시작 요청됨', 'تم التحقق؛ تم طلب المسح'],
       gmgnApiGetKey: ['首次使用 / 创建 API', '首次使用 / 建立 API', 'First use / Create API', '初回設定 / API作成', '첫 사용 / API 생성', 'الاستخدام الأول / إنشاء API'],
-      gmgnOnboardingTitle: ['创建或更换 GMGN API', '建立或更換 GMGN API', 'Create or replace a GMGN API', 'GMGN APIの作成・変更', 'GMGN API 생성 또는 교체', 'إنشاء أو استبدال واجهة GMGN'],
-      gmgnOnboardingIntro: ['每次创建新的 GMGN API Key，都必须重新完成 Agent 公钥绑定。Meme雷达只是在本机代为生成本次公钥，不会跳过这一步。', '每次建立新的 GMGN API Key，都必須重新完成 Agent 公鑰綁定。Meme雷達只是在本機代為產生本次公鑰，不會略過此步驟。', 'Every new GMGN API key requires a fresh agent public-key pairing. Meme Radar only generates that public key locally; it never skips the pairing step.', 'GMGN APIキーを新しく作成するたびに、Agent公開鍵の再連携が必要です。Meme Radarは今回の公開鍵を端末内で生成するだけで、この手順を省略しません。', '새 GMGN API 키를 만들 때마다 Agent 공개 키를 다시 연결해야 합니다. Meme 레이더는 이번 공개 키를 로컬에서 생성할 뿐이며 이 단계를 건너뛰지 않습니다.', 'يتطلب كل مفتاح GMGN API جديد ربطًا جديدًا بالمفتاح العام للوكيل. لا يتجاوز الرادار هذه الخطوة، بل ينشئ المفتاح العام لهذه المرة محليًا فقط.'],
-      gmgnOnboardingStep1: ['复制下面的 Ed25519 公钥。', '複製下方的 Ed25519 公鑰。', 'Copy the Ed25519 public key below.', '下のEd25519公開鍵をコピーします。', '아래 Ed25519 공개 키를 복사하세요.', 'انسخ مفتاح Ed25519 العام أدناه.'],
-      gmgnOnboardingStep2: ['打开 GMGN 创建页面；如果没有自动填入，就粘贴公钥。', '開啟 GMGN 建立頁面；若未自動填入，請貼上公鑰。', 'Open the GMGN creation page; paste the public key if it is not prefilled.', 'GMGN作成ページを開き、自動入力されない場合は公開鍵を貼り付けます。', 'GMGN 생성 페이지를 열고 자동 입력되지 않으면 공개 키를 붙여 넣으세요.', 'افتح صفحة إنشاء GMGN والصق المفتاح العام إن لم يُملأ تلقائيًا.'],
-      gmgnOnboardingStep3: ['只开启“允许读取”，务必关闭“允许交易”。', '只開啟「允許讀取」，務必關閉「允許交易」。', 'Enable Read only and keep Trading disabled.', '「読取許可」のみ有効にし、「取引許可」は必ず無効にします。', '읽기만 켜고 거래는 반드시 끄세요.', 'فعّل القراءة فقط واترك التداول معطلاً.'],
-      gmgnOnboardingStep4: ['创建后复制 API Key，回到 Meme雷达粘贴并点击 ✓。', '建立後複製 API Key，回到 Meme雷達貼上並點擊 ✓。', 'Copy the API key, return to Meme Radar, paste it, and click ✓.', '作成後にAPIキーをコピーし、レーダーへ戻って貼り付け、✓を押します。', '생성된 API 키를 복사해 레이더에 붙여 넣고 ✓를 누르세요.', 'انسخ مفتاح API ثم عد إلى الرادار والصقه واضغط ✓.'],
-      gmgnOnboardingSecurity: ['私钥只保存在本机，不会显示在网页、日志或安装包中。不要把私钥文件发给任何人。', '私鑰只保存在本機，不會顯示於網頁、日誌或安裝包。不要把私鑰檔案交給任何人。', 'The private key stays on this computer and is never shown in the page, logs, or installer. Never share it.', '秘密鍵はこのPC内だけに保存され、画面・ログ・配布物には表示されません。共有しないでください。', '개인 키는 이 컴퓨터에만 저장되며 화면, 로그, 설치 파일에 표시되지 않습니다. 절대 공유하지 마세요.', 'يبقى المفتاح الخاص على هذا الجهاز ولا يظهر في الصفحة أو السجلات أو المثبّت. لا تشاركه.'],
-      gmgnPublicKeyAria: ['GMGN 公钥', 'GMGN 公鑰', 'GMGN public key', 'GMGN公開鍵', 'GMGN 공개 키', 'مفتاح GMGN العام'],
-      copyPublicKey: ['复制公钥', '複製公鑰', 'Copy public key', '公開鍵をコピー', '공개 키 복사', 'نسخ المفتاح العام'],
-      publicKeyCopied: ['公钥已复制', '公鑰已複製', 'Public key copied', '公開鍵をコピーしました', '공개 키 복사됨', 'تم نسخ المفتاح العام'],
-      openGmgnCreate: ['打开 GMGN 创建页', '開啟 GMGN 建立頁', 'Open GMGN creation page', 'GMGN作成ページを開く', 'GMGN 생성 페이지 열기', 'فتح صفحة إنشاء GMGN'],
-      gmgnOnboardingPreparing: ['正在本机生成安全密钥……', '正在本機產生安全密鑰……', 'Creating a secure local key…', 'ローカル鍵を生成中…', '로컬 보안 키 생성 중…', 'جارٍ إنشاء مفتاح محلي آمن…'],
-      gmgnOnboardingReady: ['公钥已准备好，请按上面四步操作。', '公鑰已準備好，請按上方四步操作。', 'The public key is ready. Follow the four steps above.', '公開鍵の準備が完了しました。上の4手順を進めてください。', '공개 키 준비 완료. 위 네 단계를 진행하세요.', 'المفتاح العام جاهز؛ اتبع الخطوات الأربع أعلاه.'],
-      gmgnOnboardingFailed: ['无法生成本机密钥，请重新启动 Meme雷达后再试。', '無法產生本機密鑰，請重新啟動 Meme雷達後再試。', 'Could not create the local key. Restart Meme Radar and try again.', 'ローカル鍵を生成できません。再起動してお試しください。', '로컬 키 생성 실패. Meme 레이더를 다시 시작하세요.', 'تعذر إنشاء المفتاح المحلي؛ أعد تشغيل الرادار وحاول مجددًا.'],
-      regeneratePublicKey: ['重新生成本次公钥', '重新產生本次公鑰', 'Generate a new public key', '新しい公開鍵を生成', '새 공개 키 생성', 'إنشاء مفتاح عام جديد'],
-      regeneratePublicKeyConfirm: ['旧的待绑定公钥将失效。确认重新生成吗？', '舊的待綁定公鑰將失效。確定重新產生嗎？', 'The previous pending public key will stop working. Generate a new one?', '以前の未連携公開鍵は無効になります。再生成しますか？', '이전 대기 공개 키는 사용할 수 없게 됩니다. 새로 생성할까요?', 'سيتوقف المفتاح العام السابق قيد الربط عن العمل. هل تريد إنشاء مفتاح جديد؟'],
       closeAction: ['关闭', '關閉', 'Close', '閉じる', '닫기', 'إغلاق'],
       gmgnApiConfigured: ['已配置，可更换 Key', '已設定，可更換 Key', 'Configured; you can replace the key', '設定済み。キーを変更できます', '설정됨; 키 변경 가능', 'تم الإعداد؛ يمكنك تغيير المفتاح'],
       gmgnApiVerified: ['已连接', '已連接', 'Connected', '接続済み', '연결됨', 'متصل'],
       gmgnApiInvalid: ['Key 无效或已失效，请检查后重试', 'Key 無效或已失效，請檢查後重試', 'Invalid or expired key; check and retry', 'キーが無効または期限切れです', '키가 잘못되었거나 만료되었습니다', 'المفتاح غير صالح أو منتهي الصلاحية'],
       gmgnApiPermission: ['该 Key 没有此链数据的读取权限', '此 Key 沒有此鏈資料的讀取權限', 'This key cannot read data for this chain', 'このキーには対象チェーンの読取権限がありません', '이 키에는 해당 체인의 읽기 권한이 없습니다', 'لا يملك المفتاح إذن قراءة بيانات هذه الشبكة'],
-      gmgnApiRate: ['GMGN 暂时限流，请稍后重试', 'GMGN 暫時限流，請稍後重試', 'GMGN rate limit reached; retry later', 'GMGNの制限中です。しばらくして再試行してください', 'GMGN 요청 제한, 나중에 다시 시도하세요', 'تم بلوغ حد طلبات GMGN؛ أعد المحاولة لاحقًا'],
-      gmgnApiRateCountdown: ['GMGN 已限流，请勿重复点击；约 {seconds} 秒后再试', 'GMGN 已限流，請勿重複點擊；約 {seconds} 秒後再試', 'GMGN is rate-limited. Do not retry repeatedly; try again in about {seconds}s.', 'GMGNの制限中です。連続操作せず、約{seconds}秒後に再試行してください。', 'GMGN 요청 제한 중입니다. 반복 클릭하지 말고 약 {seconds}초 후 다시 시도하세요.', 'تم تقييد GMGN. لا تكرر المحاولة؛ حاول مجددًا بعد نحو {seconds} ثانية.'],
-      gmgnApiNetwork: ['无法连接 GMGN；Windows 请开启系统代理/VPN，完全退出雷达后重新打开', '無法連接 GMGN；Windows 請開啟系統代理/VPN，完全退出雷達後重新開啟', 'Cannot reach GMGN. On Windows, enable the system proxy/VPN, fully exit Radar, then reopen it.', 'GMGNに接続できません。Windowsではシステムプロキシ/VPNを有効にし、Radarを終了して再起動してください。', 'GMGN에 연결할 수 없습니다. Windows 시스템 프록시/VPN을 켠 뒤 레이더를 완전히 종료하고 다시 여세요.', 'تعذر الاتصال بـ GMGN. في Windows فعّل وكيل النظام أو VPN، ثم أغلق الرادار بالكامل وأعد فتحه.'],
+      gmgnApiRate: ['AVE 暂时限流，请稍后重试', 'AVE 暫時限流，請稍後重試', 'AVE rate limit reached; retry later', 'AVEの制限中です。しばらくして再試行してください', 'AVE 요청 제한, 나중에 다시 시도하세요', 'تم بلوغ حد طلبات AVE؛ أعد المحاولة لاحقًا'],
+      gmgnApiRateCountdown: ['AVE 已限流，请勿重复点击；约 {seconds} 秒后再试', 'AVE 已限流，請勿重複點擊；約 {seconds} 秒後再試', 'AVE is rate-limited. Do not retry repeatedly; try again in about {seconds}s.', 'AVEの制限中です。連続操作せず、約{seconds}秒後に再試行してください。', 'AVE 요청 제한 중입니다. 반복 클릭하지 말고 약 {seconds}초 후 다시 시도하세요.', 'تم تقييد AVE. لا تكرر المحاولة؛ حاول مجددًا بعد نحو {seconds} ثانية.'],
+      gmgnApiNetwork: ['无法连接 AVE；Windows 请开启系统代理/VPN，完全退出雷达后重新打开', '無法連接 AVE；Windows 請開啟系統代理/VPN，完全退出雷達後重新開啟', 'Cannot reach AVE. On Windows, enable the system proxy/VPN, fully exit Radar, then reopen it.', 'AVEに接続できません。Windowsではシステムプロキシ/VPNを有効にし、Radarを終了して再起動してください。', 'AVE에 연결할 수 없습니다. Windows 시스템 프록시/VPN을 켠 뒤 레이더를 완전히 종료하고 다시 여세요.', 'تعذر الاتصال بـ AVE. في Windows فعّل وكيل النظام أو VPN، ثم أغلق الرادار بالكامل وأعد فتحه.'],
       gmgnApiInstall: ['请先运行“安装并启动”入口', '請先執行「安裝並啟動」入口', 'Run the installer and launcher first', '先にインストーラーを実行してください', '설치 및 실행 파일을 먼저 실행하세요', 'شغّل المثبّت أولًا'],
       gmgnApiFailed: ['连接失败，请检查密钥后重试', '連接失敗，請檢查密鑰後重試', 'Connection failed; check the key and retry', '接続失敗。キーを確認して再試行してください', '연결 실패; 키를 확인하고 다시 시도하세요', 'فشل الاتصال؛ تحقق من المفتاح وحاول مجددًا'],
-      gmgnApiMismatch: ['API Key与本机公钥不匹配，请用本窗口的公钥重新创建', 'API Key與本機公鑰不相符，請用本視窗的公鑰重新建立', 'The API key does not match this computer\'s public key. Create it again using this window.', 'APIキーとこのPCの公開鍵が一致しません。この画面の公開鍵で作り直してください。', 'API 키가 이 컴퓨터의 공개 키와 일치하지 않습니다. 이 창의 공개 키로 다시 생성하세요.', 'لا يتطابق مفتاح API مع المفتاح العام لهذا الجهاز؛ أنشئه مجددًا بالمفتاح الظاهر هنا.'],
       runtimeAria: ['运行状态', '運行狀態', 'Runtime status', '稼働状態', '운영 상태', 'حالة التشغيل'],
       localService: ['本地服务', '本地服務', 'Local service', 'ローカルサービス', '로컬 서비스', 'الخدمة المحلية'],
       connecting: ['正在连接', '正在連線', 'Connecting', '接続中', '연결 중', 'جارٍ الاتصال'],
       port3791: ['端口3791', '連接埠3791', 'Port 3791', 'ポート3791', '포트 3791', 'المنفذ 3791'],
-      gmgnSource: ['GMGN数据源', 'GMGN資料源', 'GMGN source', 'GMGNデータソース', 'GMGN 데이터 소스', 'مصدر بيانات GMGN'],
+      gmgnSource: ['AVE数据源', 'AVE資料源', 'AVE source', 'AVEデータソース', 'AVE 데이터 소스', 'مصدر بيانات AVE'],
       notRead: ['尚未读取', '尚未讀取', 'Not read yet', '未取得', '아직 읽지 않음', 'لم تُقرأ بعد'],
       lastAttemptLabel: ['最近扫描尝试', '最近掃描嘗試', 'Last scan attempt', '最終スキャン試行', '최근 스캔 시도', 'آخر محاولة مسح'],
       noRecord: ['暂无记录', '暫無記錄', 'No record', '記録なし', '기록 없음', 'لا يوجد سجل'],
@@ -997,7 +1088,7 @@
       completedRounds: ['成功完成的历史轮次', '歷史成功完成輪次', 'Historically completed cycles', '過去の完了サイクル', '성공적으로 완료된 역사적 주기', 'الدورات المكتملة تاريخيًا'],
       discoveredTokens: ['发现代币', '發現代幣', 'Tokens found', '検出トークン', '발견 토큰', 'الرموز المكتشفة'],
       currentRound: ['本轮', '本輪', 'This cycle', '今回', '현재 주기', 'هذه الدورة'],
-      gmgnReturned: ['本轮GMGN返回数量', '本輪GMGN回傳數量', 'Returned by GMGN this cycle', '今回のGMGN取得数', '이번 주기 GMGN 반환 수', 'ما أعاده GMGN في هذه الدورة'],
+      gmgnReturned: ['本轮AVE返回数量', '本輪AVE回傳數量', 'Returned by AVE this cycle', '今回のAVE取得数', '이번 주기 AVE 반환 수', 'ما أعاده AVE في هذه الدورة'],
       prequalifiedLabel: ['初筛通过', '初篩通過', 'Pre-screened', '一次審査通過', '1차 필터 통과', 'اجتازت الفحص الأولي'],
       awaitingAudit: ['等待或已进入深度审计', '等待或已進入深度審計', 'Waiting for or in deep audit', '深度審査待ちまたは実行中', '심층 감사 대기 또는 진행 중', 'بانتظار التدقيق العميق أو قيده'],
       deepAuditLabel: ['深度审计', '深度審計', 'Deep audits', '深度審査', '심층 감사', 'تدقيق عميق'],
@@ -1019,7 +1110,7 @@
       none: ['暂无', '暫無', 'None', 'なし', '없음', 'لا يوجد'],
       completedZero: ['完成0个样本', '完成0個樣本', '0 samples complete', '0件完了', '0개 표본 완료', '0 عينة مكتملة'],
       sampleGate: ['调参门槛：30分钟、2小时或24小时的完成样本均需满50个；未满50个只做观察，不用于调参。', '調參門檻：30分鐘、2小時或24小時的完成樣本均需滿50個；未滿50個只做觀察，不用於調參。', 'Tuning gate: each 30m, 2h or 24h window needs 50 completed samples; smaller sets are observation-only.', '調整基準：30分・2時間・24時間の各窓で50件完了が必要です。未満は観測のみです。', '튜닝 기준: 30분·2시간·24시간 각 구간에 50개 완료 표본이 필요합니다. 미달은 관찰용입니다.', 'بوابة الضبط: يلزم 50 عينة مكتملة لكل نافذة 30د أو 2س أو 24س؛ ما دون ذلك للمراقبة فقط.'],
-      auditTitle: ['近30分钟深度审计', '近30分鐘深度審計', 'Deep audits: last 30 min', '過去30分の深度審査', '최근 30분 심층 감사', 'التدقيق العميق لآخر 30 دقيقة'],
+      auditTitle: ['自动筛选记录', '自動篩選記錄', 'Automatic screening log', '自動選別履歴', '자동 선별 기록', 'سجل الفرز الآلي'],
       auditSubtitle: ['按链上安全、持仓结构与市场数据分批深审', '按鏈上安全、持倉結構與市場資料分批深審', 'Batched review of on-chain safety, holders and market data', 'オンチェーン安全性・保有構造・市場データを分割審査', '온체인 안전성·보유 구조·시장 데이터를 분할 심사', 'تدقيق دفعي لأمان السلسلة وهيكل الحيازة وبيانات السوق'],
       toolbarAria: ['候选筛选和排序', '候選篩選和排序', 'Candidate filters and sorting', '候補の絞り込みと並べ替え', '후보 필터 및 정렬', 'تصفية المرشحين وترتيبهم'],
       searchPlaceholder: ['搜索代币名称、简称或合约地址', '搜尋代幣名稱、簡稱或合約地址', 'Search name, symbol or contract', '名称・シンボル・コントラクトを検索', '이름, 심볼 또는 계약 주소 검색', 'البحث بالاسم أو الرمز أو العقد'],
@@ -1056,7 +1147,7 @@
       statusAuth: ['等待授权', '等待授權', 'Authorization needed', '認証待ち', '인증 필요', 'يلزم التفويض'],
       statusStateError: ['状态异常', '狀態異常', 'State error', '状態異常', '상태 오류', 'خطأ في الحالة'],
       statusUnknown: ['状态未知', '狀態未知', 'Unknown status', '状態不明', '상태 알 수 없음', 'حالة غير معروفة'],
-      rateLimitedSafe: ['GMGN请求频率受限，系统正在等待下一轮自动重试', 'GMGN請求頻率受限，系統正等待下一輪自動重試', 'GMGN rate limit reached; waiting for the next automatic retry', 'GMGNのレート制限中。次回の自動再試行を待機しています', 'GMGN 속도 제한으로 다음 자동 재시도를 기다립니다', 'تم بلوغ حد GMGN؛ بانتظار إعادة المحاولة تلقائيًا'],
+      rateLimitedSafe: ['AVE请求频率受限，系统正在等待下一轮自动重试', 'AVE請求頻率受限，系統正等待下一輪自動重試', 'AVE rate limit reached; waiting for the next automatic retry', 'AVEのレート制限中。次回の自動再試行を待機しています', 'AVE 속도 제한으로 다음 자동 재시도를 기다립니다', 'تم بلوغ حد AVE؛ بانتظار إعادة المحاولة تلقائيًا'],
       requestFailedSafe: ['数据请求暂时失败，系统将在下一轮自动重试', '資料請求暫時失敗，系統將於下一輪自動重試', 'Data request failed temporarily; the next cycle will retry', 'データ取得に一時失敗。次回に自動再試行します', '데이터 요청이 일시 실패했으며 다음 주기에 재시도합니다', 'فشل طلب البيانات مؤقتًا؛ ستتم إعادة المحاولة في الدورة التالية'],
       sourceChanged: ['数据请求状态发生变化', '資料請求狀態發生變化', 'Data request status changed', 'データ取得状態が変化しました', '데이터 요청 상태가 변경되었습니다', 'تغيرت حالة طلب البيانات'],
       durationSeconds: ['{n}秒', '{n}秒', '{n}s', '{n}秒', '{n}초', '{n}ث'],
@@ -1069,7 +1160,7 @@
       manualApproved: ['人工已通过', '人工已通過', 'Manually approved', '手動承認済み', '수동 승인됨', 'تمت الموافقة يدويًا'],
       ignored: ['已忽略', '已忽略', 'Ignored', '無視済み', '무시됨', 'تم التجاهل'],
       manualExpired: ['原人工通过已失效', '原人工通過已失效', 'Manual approval expired', '手動承認は失効', '수동 승인 만료', 'انتهت صلاحية الموافقة اليدوية'],
-      statusChain: ['链上候选/待人工看X', '鏈上候選/待人工看X', 'On-chain candidate / review X', 'オンチェーン候補／X要確認', '온체인 후보 / X 확인', 'مرشح على السلسلة / راجع X'],
+      statusChain: ['自动筛选通过','自動篩選通過','Auto-screen passed','自動選別通過','자동 선별 통과','اجتاز الفرز الآلي'],
       statusWaiting: ['等待复查', '等待複查', 'Waiting for recheck', '再確認待ち', '재검토 대기', 'بانتظار إعادة الفحص'],
       statusRejected: ['硬门淘汰', '硬門淘汰', 'Hard-gate rejected', '必須条件で除外', '필수 조건 탈락', 'مرفوض بالبوابة الصارمة'],
       chainBsc: ['BNB链', 'BNB鏈', 'BNB Chain', 'BNBチェーン', 'BNB 체인', 'شبكة BNB'],
@@ -1088,7 +1179,7 @@
       copyContract: ['复制合约', '複製合約', 'Copy contract', 'コントラクトをコピー', '계약 복사', 'نسخ العقد'],
       aveEntry: ['打开 AVE', '開啟 AVE', 'Open AVE', 'AVEを開く', 'AVE 열기', 'فتح AVE'],
       aveEntryHint: ['打开 AVE · 复制 CA 后搜索', '開啟 AVE · 複製 CA 後搜尋', 'Open AVE · Copy the CA, then search', 'AVEを開く · CAをコピーして検索', 'AVE 열기 · CA 복사 후 검색', 'افتح AVE · انسخ عنوان العقد ثم ابحث'],
-      aveTrade: ['AVE 交易','AVE 交易','Trade on AVE','AVEで取引','AVE 거래','تداول على AVE'],
+      aveTrade: ["详细行情查看","詳細行情查看","View market details","相場の詳細","상세 시세 보기","عرض تفاصيل السوق"],
       aveTokenHint: ['查看代币 K 线与买卖','查看代幣 K 線與買賣','View token chart and trading','トークンのチャート・取引を表示','토큰 차트·거래 보기','عرض الرسم البياني وتداول العملة'],
       officialX: ['官方X账号', '官方X帳號', 'Official X', '公式X', '공식 X', 'حساب X الرسمي'],
       liveXSearch: ['X实时搜索', 'X即時搜尋', 'Live X search', 'Xリアルタイム検索', 'X 실시간 검색', 'بحث X المباشر'],
@@ -1132,7 +1223,7 @@
       summaryQueue: ['；审计队列{total}个，当前到期{due}个', '；審計佇列{total}個，目前到期{due}個', '; audit queue {total}, due now {due}', '・審査キュー{total}件、期限到来{due}件', '; 감사 대기열 {total}개, 현재 만료 {due}개', '؛ قائمة التدقيق {total}، المستحق الآن {due}'],
       resultSummary: ['当前显示 {shown} 条，共 {total} 条近30分钟审计快照{queue}；黄色和红色背景表示证据已经变旧。', '目前顯示 {shown} 筆，共 {total} 筆近30分鐘審計快照{queue}；黃色和紅色背景表示證據已變舊。', 'Showing {shown} of {total} audit snapshots from the last 30 min{queue}; yellow/red rows have aging evidence.', '過去30分の審査{total}件中{shown}件を表示{queue}。黄・赤は証拠の経時劣化を示します。', '최근 30분 감사 스냅샷 {total}개 중 {shown}개 표시{queue}; 노랑/빨강은 오래된 증거입니다.', 'عرض {shown} من {total} لقطة تدقيق لآخر 30 دقيقة{queue}؛ الأصفر/الأحمر يعني قدم الأدلة.'],
       noFilteredRows: ['没有符合当前筛选条件的记录。清空搜索或切换筛选条件后再看。', '沒有符合目前篩選條件的記錄。請清除搜尋或切換篩選條件。', 'No records match these filters. Clear search or change the filter.', '条件に一致する記録はありません。検索を消すか条件を変更してください。', '현재 필터와 일치하는 기록이 없습니다. 검색을 지우거나 필터를 바꾸세요.', 'لا سجلات تطابق التصفية. امسح البحث أو غيّر المرشح.'],
-      thToken: ['代币与人工入口', '代幣與人工入口', 'Token & review links', 'トークン／確認リンク', '토큰 및 검토 링크', 'الرمز وروابط المراجعة'],
+      thToken: ['代币', '代幣', 'Token', 'トークン', '토큰', 'الرمز'],
       thMarket: ['市值/流动性', '市值/流動性', 'Market cap / liquidity', '時価総額／流動性', '시가총액 / 유동성', 'القيمة السوقية / السيولة'],
       thAge: ['币龄/审计时间', '幣齡/審計時間', 'Age / audit time', '経過時間／審査時刻', '생성 경과 / 감사 시간', 'العمر / وقت التدقيق'],
       thContract: ['合约/权限', '合約/權限', 'Contract / authority', 'コントラクト／権限', '계약 / 권한', 'العقد / الصلاحيات'],
@@ -1147,18 +1238,19 @@
       providerDiscovery: ['发现源{ok}/{total}', '發現源{ok}/{total}', 'Discovery {ok}/{total}', '発見元 {ok}/{total}', '발견 소스 {ok}/{total}', 'مصدر الاكتشاف {ok}/{total}'],
       providerAudit: ['深审接口{ok}/{total}', '深審介面{ok}/{total}', 'Audit APIs {ok}/{total}', '審査API {ok}/{total}', '심층 감사 API {ok}/{total}', 'واجهات التدقيق {ok}/{total}'],
       providerSecondary: ['外部复核{ok}/{total}', '外部複核{ok}/{total}', 'Secondary checks {ok}/{total}', '外部確認 {ok}/{total}', '외부 검토 {ok}/{total}', 'الفحوص الخارجية {ok}/{total}'],
-      gmgnOnly: ['当前链仅GMGN覆盖', '目前鏈僅GMGN覆蓋', 'Only GMGN covers this chain', 'このチェーンはGMGNのみ', '이 체인은 GMGN만 지원', 'هذه الشبكة مغطاة من GMGN فقط'],
+      gmgnOnly: ['当前链仅AVE覆盖', '目前鏈僅AVE覆蓋', 'Only AVE covers this chain', 'このチェーンはAVEのみ', '이 체인은 AVE만 지원', 'هذه الشبكة مغطاة من AVE فقط'],
       checkedAgo: ['检查于{time}', '檢查於{time}', 'Checked {time}', '{time}に確認', '{time} 확인', 'فُحص {time}'],
       providerPartial: ['部分可用', '部分可用', 'Partially available', '一部利用可', '일부 사용 가능', 'متاح جزئيًا'],
       providerNormal: ['正常', '正常', 'Normal', '正常', '정상', 'طبيعي'],
       incompleteRound: ['本轮数据可能不完整', '本輪資料可能不完整', 'This cycle may be incomplete', '今回のデータは不完全な可能性があります', '이번 주기 데이터가 불완전할 수 있습니다', 'قد تكون بيانات هذه الدورة غير مكتملة'],
-      gmgnNormal: ['GMGN接口正常', 'GMGN介面正常', 'GMGN API is normal', 'GMGN API正常', 'GMGN API 정상', 'واجهة GMGN طبيعية'],
+      gmgnNormal: ['AVE接口正常', 'AVE介面正常', 'AVE API is normal', 'AVE API正常', 'AVE API 정상', 'واجهة AVE طبيعية'],
       recentCheck: ['最近检查{time}', '最近檢查{time}', 'Last checked {time}', '最終確認 {time}', '최근 확인 {time}', 'آخر فحص {time}'],
+      recentSuccess: ['最近成功 {time}', '最近成功 {time}', 'Last success {time}', '最終成功 {time}', '최근 성공 {time}', 'آخر نجاح {time}'],
       noCheck: ['暂无检查记录', '暫無檢查記錄', 'No check record', '確認記録なし', '확인 기록 없음', 'لا سجل فحص'],
       retryAt: ['预计{time}后恢复', '預計{time}後恢復', 'Expected recovery after {time}', '{time}以降に復旧見込み', '{time} 이후 복구 예상', 'التعافي متوقع بعد {time}'],
       retryWaiting: ['等待自动重试', '等待自動重試', 'Waiting for automatic retry', '自動再試行待ち', '자동 재시도 대기', 'بانتظار إعادة المحاولة تلقائيًا'],
       notAuthorized: ['尚未授权', '尚未授權', 'Not authorized', '未認証', '인증되지 않음', 'غير مفوّض'],
-      configReadOnly: ['需要配置GMGN只读接口', '需要設定GMGN唯讀介面', 'Configure the GMGN read-only API', 'GMGN読み取り専用APIの設定が必要', 'GMGN 읽기 전용 API 설정 필요', 'يلزم إعداد واجهة GMGN للقراءة فقط'],
+      configReadOnly: ['需要配置AVE只读接口', '需要設定AVE唯讀介面', 'Configure the AVE read-only API', 'AVE読み取り専用APIの設定が必要', 'AVE 읽기 전용 API 설정 필요', 'يلزم إعداد واجهة AVE للقراءة فقط'],
       requestError: ['请求异常', '請求異常', 'Request error', '取得異常', '요청 오류', 'خطأ في الطلب'],
       lastRoundSuccess: ['最近一轮读取成功', '最近一輪讀取成功', 'Latest cycle succeeded', '直近サイクル取得成功', '최근 주기 읽기 성공', 'نجحت الدورة الأخيرة'],
       partialEvidence: ['本轮部分证据不完整，等待自动复查', '本輪部分證據不完整，等待自動複查', 'Some evidence is incomplete; waiting for automatic recheck', '一部証拠が不完全。自動再確認待ち', '일부 증거 불완전; 자동 재검토 대기', 'بعض الأدلة غير مكتملة؛ بانتظار إعادة الفحص'],
@@ -1188,18 +1280,18 @@
       backendConfirmedScanning: ['后端已确认正在执行', '後端已確認正在執行', 'Backend confirms scan is running', 'バックエンドで実行を確認', '백엔드 실행 확인', 'أكدت الخلفية أن المسح جارٍ'],
       noLiveProgress: ['后端未提供实时进度标记', '後端未提供即時進度標記', 'No live progress flag from backend', 'リアルタイム進捗情報なし', '백엔드 실시간 진행 정보 없음', 'لا توفر الخلفية مؤشر تقدم مباشر'],
       noSuccessfulData: ['尚无成功数据', '尚無成功資料', 'No successful data yet', '成功データなし', '성공 데이터 없음', 'لا بيانات ناجحة بعد'],
-      authNotice: ['输入你的 GMGN 只读 API Key，点击 ✓ 验证后自动开始扫描。没有 Key 可点击“获取 API Key”。', '輸入你的 GMGN 唯讀 API Key，點擊 ✓ 驗證後自動開始掃描。沒有 Key 可點擊「取得 API Key」。', 'Enter your GMGN read-only API key and click ✓ to verify and scan. Use “Get an API key” if needed.', 'GMGNの読取専用APIキーを入力し、✓で確認するとスキャンが始まります。キー取得リンクも利用できます。', 'GMGN 읽기 전용 API 키를 입력하고 ✓를 누르면 검증 후 스캔이 시작됩니다. 키가 없으면 발급 링크를 이용하세요.', 'أدخل مفتاح GMGN للقراءة فقط واضغط ✓ للتحقق وبدء المسح. استخدم رابط الحصول على مفتاح عند الحاجة.'],
-      rateNotice: ['GMGN请求频率受限。{retry}系统会在后续轮次自动重试，不会下单。', 'GMGN請求頻率受限。{retry}系統會在後續輪次自動重試，不會下單。', 'GMGN is rate-limited. {retry}A later cycle will retry automatically; no order is placed.', 'GMGNのレート制限中。{retry}後続サイクルで自動再試行します。注文はしません。', 'GMGN 속도 제한 상태입니다. {retry}다음 주기에서 자동 재시도하며 주문하지 않습니다.', 'GMGN محدود المعدل. {retry}ستعيد دورة لاحقة المحاولة تلقائيًا؛ لا أوامر.'],
+      authNotice: ['输入你的 AVE 只读 API Key，点击 ✓ 验证后自动开始扫描。没有 Key 可点击“获取 API Key”。', '輸入你的 AVE 唯讀 API Key，點擊 ✓ 驗證後自動開始掃描。沒有 Key 可點擊「取得 API Key」。', 'Enter your AVE read-only API key and click ✓ to verify and scan. Use “Get an API key” if needed.', 'AVEの読取専用APIキーを入力し、✓で確認するとスキャンが始まります。キー取得リンクも利用できます。', 'AVE 읽기 전용 API 키를 입력하고 ✓를 누르면 검증 후 스캔이 시작됩니다. 키가 없으면 발급 링크를 이용하세요.', 'أدخل مفتاح AVE للقراءة فقط واضغط ✓ للتحقق وبدء المسح. استخدم رابط الحصول على مفتاح عند الحاجة.'],
+      rateNotice: ['AVE请求频率受限。{retry}系统会在后续轮次自动重试，不会下单。', 'AVE請求頻率受限。{retry}系統會在後續輪次自動重試，不會下單。', 'AVE is rate-limited. {retry}A later cycle will retry automatically; no order is placed.', 'AVEのレート制限中。{retry}後続サイクルで自動再試行します。注文はしません。', 'AVE 속도 제한 상태입니다. {retry}다음 주기에서 자동 재시도하며 주문하지 않습니다.', 'AVE محدود المعدل. {retry}ستعيد دورة لاحقة المحاولة تلقائيًا؛ لا أوامر.'],
       expectedRecovery: ['预计恢复时间：{time}。', '預計恢復時間：{time}。', 'Expected recovery: {time}. ', '復旧見込み：{time}。', '예상 복구 시간: {time}. ', 'التعافي المتوقع: {time}. '],
       scanErrorNotice: ['扫描发生异常：{detail}', '掃描發生異常：{detail}', 'Scan error: {detail}', 'スキャン異常：{detail}', '스캔 오류: {detail}', 'خطأ في المسح: {detail}'],
       waitAutoRetry: ['等待下一轮自动重试', '等待下一輪自動重試', 'Waiting for the next automatic retry', '次回の自動再試行待ち', '다음 자동 재시도 대기', 'بانتظار إعادة المحاولة التالية'],
       scanningNotice: ['正在扫描当前链路并整理证据，请等待本轮完成。页面保留上一轮结果，但会明确标记其审计时间。', '正在掃描目前鏈路並整理證據，請等待本輪完成。頁面保留上一輪結果，但會清楚標記審計時間。', 'Scanning this chain and assembling evidence. The prior result remains visible with its audit time clearly marked.', '現在のチェーンをスキャンし証拠を整理中。前回結果は審査時刻付きで表示します。', '현재 체인을 스캔하고 증거를 정리 중입니다. 이전 결과는 감사 시간과 함께 유지됩니다.', 'جارٍ مسح الشبكة وتجميع الأدلة. تبقى نتيجة الدورة السابقة مع وقت التدقيق بوضوح.'],
       switchingNotice: ['正在切换扫描链路，旧链候选不会混入新链结果。', '正在切換掃描鏈路，舊鏈候選不會混入新鏈結果。', 'Switching scan chain; old-chain candidates will not mix with new results.', 'チェーン切替中。旧チェーン候補は新結果に混在しません。', '스캔 체인 전환 중; 이전 체인 후보는 새 결과에 섞이지 않습니다.', 'جارٍ تبديل شبكة المسح؛ لن تختلط مرشحات الشبكة القديمة بالنتائج الجديدة.'],
-      degradedNotice: ['本轮有部分GMGN、GoPlus或DexScreener证据缺失，未知项不会冒充安全；系统会自动复查。交易执行永久关闭。', '本輪有部分GMGN、GoPlus或DexScreener證據缺失，未知項不會視為安全；系統會自動複查。交易執行永久關閉。', 'Some GMGN, GoPlus or DexScreener evidence is missing. Unknowns never count as safe; recheck is automatic. Trading is permanently disabled.', 'GMGN／GoPlus／DexScreenerの一部証拠が不足。不明は安全扱いせず自動再確認します。取引は常時無効です。', '일부 GMGN, GoPlus 또는 DexScreener 증거가 누락되었습니다. 미확인은 안전으로 처리하지 않으며 자동 재검토합니다. 거래는 영구 비활성입니다.', 'بعض أدلة GMGN أو GoPlus أو DexScreener مفقودة. المجهول لا يُعد آمنًا وستتم إعادة الفحص؛ التداول معطل دائمًا.'],
+      degradedNotice: ['本轮有部分AVE、GoPlus或DexScreener证据缺失，未知项不会冒充安全；系统会自动复查。交易执行永久关闭。', '本輪有部分AVE、GoPlus或DexScreener證據缺失，未知項不會視為安全；系統會自動複查。交易執行永久關閉。', 'Some AVE, GoPlus or DexScreener evidence is missing. Unknowns never count as safe; recheck is automatic. Trading is permanently disabled.', 'AVE／GoPlus／DexScreenerの一部証拠が不足。不明は安全扱いせず自動再確認します。取引は常時無効です。', '일부 AVE, GoPlus 또는 DexScreener 증거가 누락되었습니다. 미확인은 안전으로 처리하지 않으며 자동 재검토합니다. 거래는 영구 비활성입니다.', 'بعض أدلة AVE أو GoPlus أو DexScreener مفقودة. المجهول لا يُعد آمنًا وستتم إعادة الفحص؛ التداول معطل دائمًا.'],
       runningPartialNotice: ['扫描器正在运行，但本轮数据尚不完整（{detail}）；请等待完整复查。交易执行永久关闭。', '掃描器正在運行，但本輪資料尚不完整（{detail}）；請等待完整複查。交易執行永久關閉。', 'Scanner is running, but this cycle is incomplete ({detail}); wait for recheck. Trading is permanently disabled.', 'スキャン稼働中ですが今回データは不完全（{detail}）。再確認を待ってください。取引は常時無効です。', '스캐너는 실행 중이나 이번 데이터가 불완전합니다({detail}). 재검토를 기다리세요. 거래는 영구 비활성입니다.', 'الماسح يعمل لكن الدورة غير مكتملة ({detail})؛ انتظر إعادة الفحص. التداول معطل دائمًا.'],
       runningNotice: ['扫描器运行中 · 交易执行永久关闭 · X社区采用人工点击复核，不会因为社交热度自动触发交易。', '掃描器運行中 · 交易執行永久關閉 · X社群採人工點擊複核，不會因社交熱度自動觸發交易。', 'Scanner running · trading permanently disabled · X is reviewed manually and social hype never triggers a trade.', 'スキャン稼働中・取引は常時無効・Xは手動確認し、話題性で取引しません。', '스캐너 실행 중 · 거래 영구 비활성 · X는 수동 검토하며 소셜 열기로 거래하지 않습니다.', 'الماسح يعمل · التداول معطل دائمًا · تتم مراجعة X يدويًا ولا تحفز الضجة أي تداول.'],
       initialNotice: ['雷达正在初始化，请等待首次扫描完成。', '雷達正在初始化，請等待首次掃描完成。', 'Radar is initializing; wait for the first scan.', 'レーダー初期化中。初回スキャンを待ってください。', '레이더 초기화 중; 첫 스캔을 기다리세요.', 'جارٍ تهيئة الرادار؛ انتظر أول مسح.'],
-      eventRateLimited: ['当时触发GMGN请求频率限制，系统已等待后续轮次重试', '當時觸發GMGN請求頻率限制，系統已等待後續輪次重試', 'GMGN was rate-limited; the system queued a later retry', 'GMGNレート制限が発生し、後続サイクルで再試行待ち', 'GMGN 속도 제한 발생; 다음 주기 재시도 대기', 'تم بلوغ حد GMGN؛ أُدرجت إعادة المحاولة لدورة لاحقة'],
+      eventRateLimited: ['当时触发AVE请求频率限制，系统已等待后续轮次重试', '當時觸發AVE請求頻率限制，系統已等待後續輪次重試', 'AVE was rate-limited; the system queued a later retry', 'AVEレート制限が発生し、後続サイクルで再試行待ち', 'AVE 속도 제한 발생; 다음 주기 재시도 대기', 'تم بلوغ حد AVE؛ أُدرجت إعادة المحاولة لدورة لاحقة'],
       eventRequestFailed: ['当时数据请求失败，系统已留到下一轮重试', '當時資料請求失敗，系統已留到下一輪重試', 'The data request failed and was left for the next cycle', 'データ取得失敗。次回サイクルへ繰越', '데이터 요청 실패; 다음 주기로 이월', 'فشل طلب البيانات وأُجّل للدورة التالية'],
       eventChanged: ['雷达状态发生变化', '雷達狀態發生變化', 'Radar status changed', 'レーダー状態が変化', '레이더 상태 변경', 'تغيرت حالة الرادار'],
       cycleSummary: ['最近尝试 {time} · 单轮耗时{ms}毫秒', '最近嘗試 {time} · 單輪耗時{ms}毫秒', 'Last attempt {time} · cycle {ms} ms', '最終試行 {time}・所要{ms}ms', '최근 시도 {time} · 주기 {ms}ms', 'آخر محاولة {time} · مدة الدورة {ms} مللي ثانية'],
@@ -1227,7 +1319,7 @@
       sourceConflict: ['多源数据存在冲突，等待重查', '多源資料存在衝突，等待重查', 'Data sources conflict; waiting for recheck', '複数ソースが不一致。再確認待ち', '데이터 소스 충돌; 재검토 대기', 'توجد تعارضات بين المصادر؛ بانتظار إعادة الفحص'],
       noReasonWaiting: ['深度审计数据暂时不完整，正在等待下一轮复查', '深度審計資料暫時不完整，正在等待下一輪複查', 'Deep-audit data is incomplete; waiting for the next recheck', '深度審査データ不完全。次回確認待ち', '심층 감사 데이터 불완전; 다음 재검토 대기', 'بيانات التدقيق غير مكتملة؛ بانتظار الإعادة التالية'],
       chainPassNextX: ['链上硬门全部通过，下一步请人工检查X社区', '鏈上硬門全部通過，下一步請人工檢查X社群', 'All on-chain hard gates passed; review X manually next', 'オンチェーン必須条件通過。次にXを手動確認', '온체인 필수 조건 통과; 다음은 X 수동 확인', 'اجتازت كل البوابات على السلسلة؛ راجع X يدويًا'],
-      noFailureDetail: ['没有可解释的失败明细，请在GMGN详情中复核', '沒有可解釋的失敗明細，請在GMGN詳情中複核', 'No explainable failure detail; review GMGN details', '説明可能な失敗詳細なし。GMGN詳細を確認', '설명 가능한 실패 상세 없음; GMGN 상세 확인', 'لا تفاصيل فشل قابلة للتفسير؛ راجع تفاصيل GMGN']
+      noFailureDetail: ['没有可解释的失败明细，请在AVE详情中复核', '沒有可解釋的失敗明細，請在AVE詳情中複核', 'No explainable failure detail; review AVE details', '説明可能な失敗詳細なし。AVE詳細を確認', '설명 가능한 실패 상세 없음; AVE 상세 확인', 'لا تفاصيل فشل قابلة للتفسير؛ راجع تفاصيل AVE']
     };
 
     let currentLocale = 'zh-CN';
@@ -1355,11 +1447,16 @@
       RATE_LIMITED: 'statusRateLimited',
       ERROR: 'statusError',
       GMGN_AUTH_REQUIRED: 'statusAuth',
+      AVE_AUTH_REQUIRED: 'statusAuth',
+      BUDGET_PAUSED: 'aveBudgetPaused',
+      HOURLY_BUDGET_PAUSED: 'aveHourlyPaused',
+      TOTAL_BUDGET_PAUSED: 'aveTotalPaused',
+      QUOTA_PAUSED: 'aveQuotaPaused',
       STATE_ERROR: 'statusStateError'
     };
 
     const defaultPolicy = {
-      scanIntervalMs: 120000,
+      scanIntervalMs: 300000,
       minimumAgeMinutes: 5,
       priorityMarketCap: [20000, 80000],
       minLpLockedRate: 0.80,
@@ -1380,9 +1477,7 @@
       { id: 'bsc', labelKey: 'chainBsc' },
       { id: 'base', label: 'Base' },
       { id: 'eth', labelKey: 'chainEth' },
-      { id: 'robinhood', labelKey: 'chainRobinhood' },
-      { id: 'arc', label: 'Arc' },
-      { id: 'stable', label: 'Stable' }
+      { id: 'robinhood', labelKey: 'chainRobinhood' }
     ];
 
     function chainLabel(chain) {
@@ -1482,7 +1577,7 @@
         desktopAlert(event.chain + ':' + event.type + ':' + event.at, t(event.type === 'CANDIDATE_NEW' ? 'newCandidateAlert' : 'riskAlert'), event.message, event.at);
       });
       const lastSuccess = scheduler.lastSuccessAt || data.lastSuccessAt;
-      if (lastSuccess && Date.now() - lastSuccess > 10 * 60000 && data.gmgnConnection && data.gmgnConnection.configured) {
+      if (lastSuccess && Date.now() - lastSuccess > 10 * 60000 && data.aveConnection && data.aveConnection.configured) {
         desktopAlert('scanner-stale:' + lastSuccess, t('failureAlert'), t('appTitle'), Date.now());
       }
     }
@@ -1556,8 +1651,8 @@
         secondary.security.fatal.forEach(function (risk) { add('GoPlus一票否决：' + safeMessage(risk.reason, risk.field || '发现致命合约风险')); });
       }
       if (Array.isArray(secondary.conflicts)) secondary.conflicts.forEach(function (conflict) {
-        if (conflict.type === 'MARKET_MISMATCH') add('多源数据冲突：GMGN与DexScreener的' + safeMessage(conflict.field, '市场数据') + '差异过大，等待重查');
-        else if (conflict.type === 'SECURITY_MISMATCH') add('多源数据冲突：GMGN与GoPlus的' + safeMessage(conflict.field, '安全字段') + '结论冲突，等待重查');
+        if (conflict.type === 'MARKET_MISMATCH') add('多源数据冲突：AVE与DexScreener的' + safeMessage(conflict.field, '市场数据') + '差异过大，等待重查');
+        else if (conflict.type === 'SECURITY_MISMATCH') add('多源数据冲突：AVE与GoPlus的' + safeMessage(conflict.field, '安全字段') + '结论冲突，等待重查');
         else if (conflict.type === 'WEBSITE_MISMATCH') add('不同数据源给出的官网域名不同，请人工辨别');
       });
       if (secondaryCovered && secondary.status === 'DEGRADED') add('GoPlus或DexScreener证据不完整，未知值不会按安全处理');
@@ -1591,12 +1686,12 @@
           (deep.chartRisk && deep.chartRisk.reasons || ['形态数据待复核']).forEach(add);
         } else if (code === 'observation') {
           add(safeMessage(observation.reason, '5分钟盘面观察未通过') + '；5分钟涨跌' + formatPercent(observation.return5m) + '，最大回撤' + formatPercent(observation.maxDrawdown) + '，单根量能占比' + formatPercent(observation.volumeConcentration));
-        } else add('存在尚未中文化的审计项，请在GMGN详情中复核');
+        } else add('存在尚未中文化的审计项，请在AVE详情中复核');
       });
 
       if (!reasons.length) add(backendDisposition(row) === 'waiting'
         ? '深度审计数据暂时不完整，正在等待下一轮复查'
-        : deep.chainPass ? '链上硬门全部通过，下一步请人工检查X社区' : '没有可解释的失败明细，请在GMGN详情中复核');
+        : deep.chainPass ? '链上硬门全部通过，下一步请人工检查X社区' : '没有可解释的失败明细，请在AVE详情中复核');
       return reasons;
     }
 
@@ -1653,7 +1748,10 @@
     }
 
     function sortRows(rows, sortValue) {
+      const now = Date.now();
       return rows.sort(function (a, b) {
+        const aVoice = voiceSpotlightRank(a, now), bVoice = voiceSpotlightRank(b, now);
+        if (aVoice !== bVoice) return aVoice - bVoice;
         if (sortValue === 'score_desc') return number(b.discoveryScore) - number(a.discoveryScore);
         if (sortValue === 'market_desc') return number(b.marketCap) - number(a.marketCap);
         if (sortValue === 'market_asc') return number(a.marketCap) - number(b.marketCap);
@@ -1661,6 +1759,171 @@
         return number(b.auditedAt) - number(a.auditedAt);
       });
     }
+
+    // One visible candidate pool, sourced only from the current fast discovery
+    // snapshot. Historical audit rows may veto risk, but never refill a token
+    // that has fallen out of the current market screen.
+    function unifiedPoolRows(chain) {
+      const now = Date.now();
+      const data = liveData && liveData.chain === chain ? liveData : null;
+      const rejected = new Set(rowsCache.filter(function (row) {
+        return row.chain === chain && backendDisposition(row) === 'rejected';
+      }).map(voiceSpotlightKey));
+      const rows = new Map((data && data.rows || []).filter(function (row) {
+        const firstSeenAt = number(row.firstSeenAt || row.newAt || row.sourceUpdatedAt);
+        return !rejected.has(voiceSpotlightKey(row)) && !['HARD_REJECT', 'REJECTED'].includes(row.audit && row.audit.status)
+          && row.discoveryState === 'READY' && row.auditEligible === true && row.stale !== true
+          && firstSeenAt > 0 && firstSeenAt <= now && now - firstSeenAt <= 15 * 60000;
+      }).map(function (row) {
+        const expired = row.stale || !(row.sourceUpdatedAt > 0) || row.sourceUpdatedAt > now
+          || now - row.sourceUpdatedAt > 60000 || !(row.expiresAt > now);
+        const item = { ...row, voiceSource: 'live', stale: expired, auditEligible: row.auditEligible && !expired,
+          discoveryState: row.discoveryState === 'READY' && expired ? 'STALE' : row.discoveryState };
+        return [voiceSpotlightKey(item), item];
+      }));
+      // The status snapshot and the speech event arrive together. Add its
+      // sanitized live rows before rendering so a spoken token is present in
+      // the card pool immediately, even if the separate feed refresh is late.
+      const voiceRows = voiceSpotlightSnapshot && voiceSpotlightSnapshot.chains && voiceSpotlightSnapshot.chains[chain];
+      (Array.isArray(voiceRows) ? voiceRows : []).filter(function (row) {
+        return row.source === 'live' && row.status === 'LIVE_READY' && row.qualified === true
+          && row.auditedAt > 0 && row.auditedAt <= now && now - row.auditedAt <= 10 * 60000
+          && row.staleAt > now && !rejected.has(voiceSpotlightKey(row));
+      }).forEach(function (row) {
+        const key = voiceSpotlightKey(row);
+        if (rows.has(key)) return;
+        rows.set(key, { ...row, voiceSource: 'live', auditEligible: true, stale: false, discoveryState: 'READY',
+          sourceUpdatedAt: row.sourceUpdatedAt || row.auditedAt, expiresAt: row.staleAt,
+          firstSeenAt: row.firstSeenAt || row.auditedAt, newAt: row.newAt || row.auditedAt });
+      });
+      return [...rows.values()];
+    }
+
+    // Voice spotlight: presentation only; never changes qualification or marks.
+    let voiceSpotlight = null, voiceSpotlightSelected = '', voiceSpotlightSnapshot = null, voiceSpotlightOnline = false;
+    let voiceSpotlightHtml = '', voiceSpotlightSignature = '';
+    function voiceSpotlightKey(row) {
+      return row && typeof row.chain === 'string' && typeof row.address === 'string'
+        ? row.chain + ':' + addressIdentity(row.address) : '';
+    }
+    function voiceSpotlightRow(entry) {
+      return entry && entry.chain === activeChain(lastData) ? unifiedPoolRows(entry.chain).find(function (row) {
+        return voiceSpotlightKey(row) === voiceSpotlightKey(entry);
+      }) : null;
+    }
+    function voiceSpotlightState(entry, now) {
+      if (!entry || !voiceSpotlight) return 'voiceSpotlightMissing';
+      const key = voiceSpotlightKey(entry), mark = manualMarks[key] || (entry.chain === 'robinhood' ? manualMarks[addressIdentity(entry.address)] : null);
+      if (mark && mark.decision === 'ignored') return 'voiceSpotlightIgnored';
+      const rows = voiceSpotlightSnapshot && voiceSpotlightSnapshot.chains && voiceSpotlightSnapshot.chains[entry.chain];
+      const current = Array.isArray(rows) ? rows.find(function (row) { return voiceSpotlightKey(row) === key; }) : null;
+      const row = voiceSpotlightRow(entry);
+      if (current && ['HARD_REJECT', 'REJECTED'].includes(current.status)) return 'voiceSpotlightRejected';
+      if (!voiceSpotlightOnline) return 'voiceSpotlightOffline';
+      if (!current || entry.chain === activeChain(lastData) && !row) return 'voiceSpotlightMissing';
+      if (now - voiceSpotlight.startedAt > 600000 || !Number.isFinite(current.auditedAt) || current.auditedAt <= 0 || current.auditedAt > now
+        || now - current.auditedAt > 600000 || !(current.staleAt > now)) return 'voiceSpotlightExpired';
+      const expected = current.source === 'live' ? 'LIVE_READY' : 'X_REVIEW';
+      if (current.qualified !== true || current.status !== expected || row && (row.auditEligible !== true || row.stale === true)) return 'voiceSpotlightChanged';
+      return 'voiceSpotlightReady';
+    }
+    function voiceSpotlightRank(row, now) {
+      if (!voiceSpotlight) return Infinity;
+      const key = voiceSpotlightKey(row), index = voiceSpotlight.rows.findIndex(function (entry) { return voiceSpotlightKey(entry) === key; });
+      if (index < 0 || voiceSpotlightState(voiceSpotlight.rows[index], now) !== 'voiceSpotlightReady') return Infinity;
+      return key === voiceSpotlightSelected ? 0 : index + 1;
+    }
+    function renderVoiceSpotlight() {
+      const panel = byId('voiceSpotlight');
+      if (!panel) return;
+      panel.hidden = !voiceSpotlight;
+      if (!voiceSpotlight) { panel.innerHTML = ''; voiceSpotlightHtml = ''; voiceSpotlightSignature = ''; return; }
+      const now = Date.now(), entry = voiceSpotlight.rows.find(function (item) { return voiceSpotlightKey(item) === voiceSpotlightSelected; }) || voiceSpotlight.rows[0];
+      voiceSpotlightSelected = voiceSpotlightKey(entry);
+      const row = voiceSpotlightRow(entry), state = voiceSpotlightState(entry, now), ready = state === 'voiceSpotlightReady';
+      const label = function (item) {
+        const candidate = voiceSpotlightRow(item), chain = chainCatalog.find(function (c) { return c.id === item.chain; });
+        return (candidate && candidate.symbol ? String(candidate.symbol) + ' · ' : '') + (chain ? chainLabel(chain) : item.chain) + ' · ' + item.address.slice(0, 8) + '…' + item.address.slice(-6);
+      };
+      const query = byId('liveSearch').value.trim().toLowerCase();
+      const filtered = ready && row && query && ![row.symbol, row.name, row.address].join(' ').toLowerCase().includes(query);
+      const title = voiceSpotlight.playback === 'playing' ? 'voiceSpotlightPlaying' : voiceSpotlight.playback === 'completed' ? 'voiceSpotlightRecent' : 'voiceSpotlightInterrupted';
+      const html = '<div class="voice-spotlight-heading"><strong id="voiceSpotlightTitle">' + escapeHtml(t(title)) + '</strong><span class="muted">' + escapeHtml(formatClock(voiceSpotlight.startedAt)) + '</span><button type="button" class="mini-button" data-voice-action="dismiss">' + escapeHtml(t('voiceSpotlightDismiss')) + '</button></div>'
+        + '<div class="voice-spotlight-main"><div><b>' + escapeHtml(label(entry)) + '</b><code class="addr mono">' + escapeHtml(entry.address) + '</code><small class="' + (ready ? 'good' : 'warn') + '">' + escapeHtml(t(filtered ? 'voiceSpotlightFiltered' : state)) + '</small></div>'
+        + '<div class="manage-actions"><button type="button" class="mini-button" data-voice-action="locate" ' + (ready && !chainSwitching ? '' : 'disabled') + '>' + escapeHtml(t('voiceSpotlightLocate')) + '</button><button type="button" class="mini-button" data-voice-action="copy">' + escapeHtml(t('copyContract')) + '</button></div></div>'
+        + (voiceSpotlight.rows.length > 1 ? '<label class="voice-spotlight-queue">' + escapeHtml(t('voiceSpotlightCount', { n: voiceSpotlight.rows.length })) + '<select id="voiceSpotlightQueue" class="field" aria-label="' + escapeHtml(t('voiceSpotlightQueue')) + '">' + voiceSpotlight.rows.map(function (item) {
+          const key = voiceSpotlightKey(item); return '<option value="' + escapeHtml(key) + '" ' + (key === voiceSpotlightSelected ? 'selected' : '') + '>' + escapeHtml(label(item)) + '</option>';
+        }).join('') + '</select></label>' : '')
+        ;
+      if (html !== voiceSpotlightHtml) { panel.innerHTML = html; voiceSpotlightHtml = html; }
+      voiceSpotlightSignature = JSON.stringify(voiceSpotlight.rows.map(function (item) { return [voiceSpotlightKey(item), voiceSpotlightState(item, now)]; }));
+    }
+    function refreshVoiceSpotlight() {
+      if (!voiceSpotlight) return;
+      const signature = JSON.stringify(voiceSpotlight.rows.map(function (item) { return [voiceSpotlightKey(item), voiceSpotlightState(item, Date.now())]; }));
+      if (signature !== voiceSpotlightSignature) renderCandidates();
+      else renderVoiceSpotlight();
+    }
+    function startVoiceSpotlight(detail) {
+      const now = Date.now();
+      if (!detail || !Number.isSafeInteger(detail.id) || detail.id < 1 || !Number.isFinite(detail.startedAt) || detail.startedAt <= 0
+        || detail.startedAt > now || now - detail.startedAt > 60000 || !Array.isArray(detail.rows)) return;
+      const unique = new Map();
+      detail.rows.slice(0, 600).forEach(function (row) {
+        if (!row || !chainCatalog.some(function (chain) { return chain.id === row.chain; }) || typeof row.address !== 'string'
+          || !(row.chain === 'sol' ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(row.address) : /^0x[0-9a-f]{40}$/i.test(row.address))) return;
+        const item = { source: row.source === 'live' ? 'live' : 'audit', chain: row.chain, address: addressIdentity(row.address) };
+        unique.set(voiceSpotlightKey(item), item);
+      });
+      if (!unique.size) return;
+      voiceSpotlight = { id: detail.id, startedAt: detail.startedAt, playback: 'playing', rows: [...unique.values()] };
+      voiceSpotlightSelected = voiceSpotlightKey(voiceSpotlight.rows[0]);
+      renderCandidates();
+      const target = byId('live-card-' + encodeURIComponent(voiceSpotlightSelected)) || byId('voiceSpotlight');
+      target?.scrollIntoView?.({ block: 'start', behavior: 'auto' });
+      target?.focus?.({ preventScroll: true });
+    }
+    async function locateVoiceSpotlight() {
+      const alertId = voiceSpotlight && voiceSpotlight.id, selected = voiceSpotlightSelected;
+      const entry = voiceSpotlight && voiceSpotlight.rows.find(function (item) { return voiceSpotlightKey(item) === selected; });
+      if (!entry || voiceSpotlightState(entry, Date.now()) !== 'voiceSpotlightReady') return;
+      if (entry.chain !== activeChain(lastData)) await switchActiveChain(entry.chain);
+      // The chain request may fail, or a risk may arrive while it is pending.
+      if (!voiceSpotlight || voiceSpotlight.id !== alertId || voiceSpotlightSelected !== selected || entry.chain !== activeChain(lastData)
+        || voiceSpotlightState(entry, Date.now()) !== 'voiceSpotlightReady') return;
+      byId('liveSearch').value = ''; byId('liveSort').value = 'new'; renderCandidates();
+      const target = byId('live-card-' + encodeURIComponent(voiceSpotlightKey(entry))) || byId('voiceSpotlight');
+      target?.scrollIntoView?.({ block: 'start', behavior: 'auto' }); target?.focus?.({ preventScroll: true });
+    }
+    function attachVoiceSpotlight() {
+      window.addEventListener('radar-voice-start', function (event) { startVoiceSpotlight(event.detail); });
+      window.addEventListener('radar-voice-finish', function (event) {
+        if (!voiceSpotlight || event.detail?.id !== voiceSpotlight.id) return;
+        voiceSpotlight.playback = event.detail.completed === true ? 'completed' : 'interrupted'; renderCandidates();
+      });
+      window.addEventListener('radar-snapshot', function (event) {
+        if (!event.detail?.chains) return;
+        voiceSpotlightSnapshot = event.detail; voiceSpotlightOnline = true; refreshVoiceSpotlight();
+      });
+      window.addEventListener('radar-offline', function () { voiceSpotlightOnline = false; refreshVoiceSpotlight(); });
+      window.addEventListener('storage', function (event) {
+        if (event.key === 'robinhoodRadarManualMarksV1') { manualMarks = readStorage(event.key, {}); if (voiceSpotlight) renderCandidates(); }
+      });
+      byId('voiceSpotlight').addEventListener('change', function (event) {
+        if (event.target.id !== 'voiceSpotlightQueue' || !voiceSpotlight) return;
+        if (voiceSpotlight.rows.some(function (item) { return voiceSpotlightKey(item) === event.target.value; })) { voiceSpotlightSelected = event.target.value; renderCandidates(); }
+      });
+      byId('voiceSpotlight').addEventListener('click', function (event) {
+        const button = event.target.closest('[data-voice-action]'); if (!button || button.disabled || !voiceSpotlight) return;
+        if (button.dataset.voiceAction === 'dismiss') { voiceSpotlight = null; renderCandidates(); }
+        else if (button.dataset.voiceAction === 'locate') void locateVoiceSpotlight();
+        else if (button.dataset.voiceAction === 'copy') {
+          const entry = voiceSpotlight.rows.find(function (item) { return voiceSpotlightKey(item) === voiceSpotlightSelected; }); if (entry) void copyText(entry.address);
+        }
+      });
+      window.addEventListener('pagehide', function () { voiceSpotlightOnline = false; voiceSpotlight = null; renderCandidates(); });
+    }
+    // Voice spotlight: end.
 
     const reservedXPaths = new Set([
       'home', 'explore', 'search', 'intent', 'share', 'i', 'messages',
@@ -1704,9 +1967,7 @@
 
     // Slugs confirmed in AVE's public chain configuration. Unknown chains must not
     // silently fall back to BSC. This is a link map, not an API trading-support claim.
-    const AVE_EVM_CHAINS = new Set(['bsc', 'eth', 'base', 'xlayer', 'polygon', 'arbitrum',
-      'optimism', 'monad', 'core', 'plasma', 'morph', 'hyperevm', 'eni', 'fsc', 'anubis',
-      'robinhood', 'stable', 'arc']);
+    const AVE_EVM_CHAINS = new Set(['bsc', 'eth', 'base', 'robinhood']);
     function aveTokenUrl(chain, address) {
       if (typeof chain !== 'string' || typeof address !== 'string') return null;
       const slug = ({ sol: 'solana', ethereum: 'eth' })[chain.trim().toLowerCase()] || chain.trim().toLowerCase();
@@ -1737,70 +1998,32 @@
       return result;
     }
 
+    function radarLinks(row) {
+      const url = aveTokenUrl(row.chain, row.address);
+      return '<div class="links"><a class="mini-button primary" href="' + escapeHtml(url || AVE_INVITE_URL) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(t(url ? 'aveTrade' : 'aveEntry')) + '</a>'
+        + '<button class="mini-button" type="button" data-action="copy" data-address="' + encodeURIComponent(row.address) + '">' + escapeHtml(t('copyContract')) + '</button></div>';
+    }
+
     function candidateRow(row, policy, now) {
-      const earlyExit = row.auditHealth && row.auditHealth.earlyExit;
-      const skipped = '<span class="muted">' + escapeHtml(t('skippedAfterReject')) + '</span>';
-      const deep = row.deep || {};
-      const checks = deep.checks || {};
-      const security = deep.security || {};
-      const wallets = deep.wallets || {};
-      const observation = deep.observation || {};
-      const secondary = row.secondary || {};
-      const secondaryMarket = secondary.market || {};
-      const secondarySecurity = secondary.security || {};
-      const secondarySources = secondary.sources || {};
       const freshness = candidateFreshness(row, now);
-      const waitingForRecheck = backendDisposition(row) === 'waiting';
-      const address = String(row.address || '');
-      const encodedAddress = encodeURIComponent(address);
-      const mark = markFor(address);
-      const canPass = backendDisposition(row) === 'chain' && candidateAuditAge(row, now) <= 10 * 60000 || Boolean(mark && mark.decision === 'passed');
+      const disposition = backendDisposition(row);
       const reasons = failureReasons(row, policy).map(function (reason) {
         return '<div class="reason">' + escapeHtml(reason) + '</div>';
       }).join('');
-      const officialStatus = officialXHandle(row) ? t('officialXFound') : t('officialXMissing');
-      const hasAge = hasFiniteValue(row.ageSec);
-      const currentAgeSeconds = hasAge ? Number(row.ageSec) + Math.max(0, (now - number(row.auditedAt, now)) / 1000) : null;
-      const ageLabel = !hasAge ? t('unknown') : currentAgeSeconds < 3600
-        ? t('minutesValue', { n: Math.max(0, Math.round(currentAgeSeconds / 60)).toLocaleString(currentLocale) })
-        : t('hoursValue', { n: new Intl.NumberFormat(currentLocale, { maximumFractionDigits: 1 }).format(currentAgeSeconds / 3600) });
-      const passActive = mark && mark.decision === 'passed';
-      const ignoreActive = mark && mark.decision === 'ignored';
-      const permissionLabel = String(row.chain || activeChain(lastData)).toLowerCase() === 'sol' ? t('permissionSol') : t('permissionEvm');
-      const passDisabledReason = backendDisposition(row) !== 'chain' ? t('cannotPassGate') : t('cannotPassStale');
-      const dexStatus = secondarySources.dexScreener && secondarySources.dexScreener.status;
-      const goPlusStatus = secondarySources.goPlus && secondarySources.goPlus.status;
-      const dexLabel = earlyExit ? t('skippedAfterReject') : dexStatus === 'OK'
-        ? t('dexReview', { mc: formatMoney(secondaryMarket.marketCap), lp: formatMoney(secondaryMarket.liquidityUsd) })
-        : dexStatus === 'UNSUPPORTED' ? t('dexUnsupported') : t('dexPending');
-      const goPlusLabel = earlyExit ? t('skippedAfterReject') : secondarySecurity.verdict === 'FATAL'
-        ? t('goPlusFatal')
-        : secondarySecurity.verdict === 'NO_FATAL_FLAGS' ? t('goPlusClear')
-          : goPlusStatus === 'UNSUPPORTED' ? t('goPlusUnsupported') : t('goPlusPending');
-      const goPlusTone = secondarySecurity.verdict === 'FATAL' ? 'bad' : secondarySecurity.verdict === 'NO_FATAL_FLAGS' ? 'good' : 'warn';
-
-      return '<tr class="' + freshness.className + '">' +
-        '<td><span class="symbol">' + escapeHtml(row.symbol || '?') + '</span><div>' + escapeHtml(row.name || '') + '</div><div class="addr mono">' + escapeHtml(address.slice(0, 8)) + '…' + escapeHtml(address.slice(-6)) + '</div>' + actionLinks(row) + '</td>' +
-        '<td class="mono">' + formatMoney(row.marketCap) + '<br><span class="muted">' + escapeHtml(t('liquidity', { value: formatMoney(security.liquidity !== undefined ? security.liquidity : row.liquidity) })) + '</span><br><span class="' + (dexStatus === 'OK' ? 'good' : 'warn') + '">' + escapeHtml(dexLabel) + '</span></td>' +
-        '<td>' + escapeHtml(ageLabel) + '<div class="audit-age ' + freshness.tone + '">' + escapeHtml(freshness.label) + '</div></td>' +
-        '<td class="stack">' + checkLine(checks.openSource, t('openSource'), waitingForRecheck) + checkLine(checks.ownerRenounced, permissionLabel, waitingForRecheck) + '<span class="' + goPlusTone + '">' + escapeHtml(goPlusLabel) + '</span></td>' +
-        '<td>' + checkLine(checks.lpLocked, security.lpBurned ? t('lpBurned') : t('lpLocked', { value: formatPercent(security.lockRate) }), waitingForRecheck) + '</td>' +
-        '<td class="' + (checks.notHoneypot ? 'good' : waitingForRecheck ? 'warn' : 'bad') + '">' + escapeHtml(deep.honeypotEvidence || t('unknown')) + '<br><span class="muted">' + escapeHtml(earlyExit ? t('skippedAfterReject') : t('distinctSellers', { n: formatCount(deep.sellability && deep.sellability.distinctSellers) })) + '</span></td>' +
-        '<td class="stack">' + checkLine(checks.tax, t('taxLabel', { buy: formatPercent(security.buyTax), sell: formatPercent(security.sellTax) }), waitingForRecheck) + checkLine(checks.rug, t('rugLabel', { value: formatPercent(security.rugRatio) }), waitingForRecheck) + checkLine(checks.concentration, t('top10Label', { value: formatPercent(security.top10) }), waitingForRecheck) + '</td>' +
-        '<td class="stack">' + (earlyExit ? skipped : checkLine(hasFiniteValue(wallets.ordinaryCount) && Number(wallets.ordinaryCount) >= policy.minOrdinaryWallets, t('ordinaryWallets', { ordinary: formatCount(wallets.ordinaryCount), sampled: formatCount(wallets.sampled) }), waitingForRecheck || !hasFiniteValue(wallets.ordinaryCount)) + '<span class="muted">' + escapeHtml(t('ordinaryHold', { value: formatPercent(wallets.ordinaryHoldRate) })) + '</span>') + '</td>' +
-        '<td class="stack">' + (earlyExit ? skipped : checkLine(knownAtMost(wallets.botHoldRate, policy.maxBotHoldRate), t('botsLabel', { value: formatPercent(wallets.botHoldRate) }), waitingForRecheck) + checkLine(knownAtMost(wallets.linkedHoldRate, policy.maxLinkedHoldRate), t('linkedLabel', { value: formatPercent(wallets.linkedHoldRate) }), waitingForRecheck)) + '</td>' +
-        '<td class="' + (observation.pass ? 'good' : 'bad') + '">' + (earlyExit ? skipped : escapeHtml(safeMessage(observation.reason, t('marketUnknown'))) + '<br><span class="muted">' + escapeHtml(t('return5m', { value: formatPercent(observation.return5m) })) + '<br>' + escapeHtml(t('maxDrawdown', { value: formatPercent(observation.maxDrawdown) })) + '</span>') + '</td>' +
-        '<td><span class="warn">' + escapeHtml(t('manualReview')) + '</span><br><span class="muted">' + escapeHtml(officialStatus) + '</span></td>' +
-        '<td>' + statusBadge(row) + '<div class="reasons">' + reasons + '</div><div class="review-actions">' +
-          '<button type="button" class="mini-button pass ' + (passActive ? 'active' : '') + '" data-action="pass" data-address="' + encodedAddress + '" ' + (canPass ? '' : 'disabled title="' + escapeHtml(passDisabledReason) + '"') + '>' + escapeHtml(passActive ? t('cancelPass') : t('manualPass')) + '</button>' +
-          '<button type="button" class="mini-button ignore ' + (ignoreActive ? 'active' : '') + '" data-action="ignore" data-address="' + encodedAddress + '">' + escapeHtml(ignoreActive ? t('cancelIgnore') : t('ignoreAction')) + '</button>' +
-          '<button type="button" class="mini-button" data-action="favorite" data-address="' + encodedAddress + '">' + escapeHtml(t(annotationFor(row.chain || activeChain(lastData), row.address).favorite ? 'unfavorite' : 'favorite')) + '</button>' +
-          '<button type="button" class="mini-button" data-action="note" data-address="' + encodedAddress + '">' + escapeHtml(t('editNote')) + '</button>' +
-        '</div></td>' +
-      '</tr>';
+      const spotlight = Number.isFinite(voiceSpotlightRank(row, now));
+      return '<tr id="voice-candidate-' + encodeURIComponent(voiceSpotlightKey(row)) + '" tabindex="-1" class="' + (spotlight ? 'voice-spotlight-row' : '') + '">'
+        + '<td><strong>' + escapeHtml(row.symbol) + '</strong>' + (spotlight ? '<span class="pill pass">' + escapeHtml(t('voiceSpotlightRow')) + '</span>' : '')
+        + '<div class="addr mono">' + escapeHtml(row.address) + '</div>' + radarLinks(row) + '</td>'
+        + '<td class="mono">' + escapeHtml(formatMoney(row.marketCap)) + '<br><small class="muted">LP ' + escapeHtml(formatMoney(row.liquidity)) + '</small></td>'
+        + '<td><span class="' + freshness.tone + '">' + escapeHtml(freshness.label) + '</span></td>'
+        + '<td><span class="pill ' + (disposition === 'chain' ? 'pass' : disposition === 'rejected' ? 'reject' : 'review') + '">'
+        + escapeHtml(t(disposition === 'chain' ? 'autoScreenPassed' : disposition === 'rejected' ? 'statusRejected' : 'autoScreenWaiting')) + '</span>'
+        + (reasons ? '<details class="screen-reasons"><summary>' + escapeHtml(t('screenDetails')) + '</summary>' + reasons + '</details>' : '') + '</td></tr>';
     }
 
     function renderCandidates() {
+      renderVoiceSpotlight();
+      renderLive();
       const now = Date.now();
       const query = byId('searchInput').value.trim().toLowerCase();
       const filter = byId('filterSelect').value;
@@ -1823,8 +2046,8 @@
 
       const body = rows.map(function (row) { return candidateRow(row, policy, now); }).join('');
       byId('candidates').innerHTML =
-        '<div class="table"><table><thead><tr>' +
-        '<th>' + escapeHtml(t('thToken')) + '</th><th>' + escapeHtml(t('thMarket')) + '</th><th>' + escapeHtml(t('thAge')) + '</th><th>' + escapeHtml(t('thContract')) + '</th><th>' + escapeHtml(t('thLp')) + '</th><th>' + escapeHtml(t('thHoneypot')) + '</th><th>' + escapeHtml(t('thRisk')) + '</th><th>' + escapeHtml(t('thOrdinary')) + '</th><th>' + escapeHtml(t('thBots')) + '</th><th>' + escapeHtml(t('thPrice')) + '</th><th>' + escapeHtml(t('thX')) + '</th><th>' + escapeHtml(t('thConclusion')) + '</th>' +
+        '<div class="table"><table class="compact-audits"><thead><tr>' +
+        '<th>' + escapeHtml(t('thToken')) + '</th><th>' + escapeHtml(t('thMarket')) + '</th><th>' + escapeHtml(t('thAge')) + '</th><th>' + escapeHtml(t('screenDetails')) + '</th>' +
         '</tr></thead><tbody>' + body + '</tbody></table></div>';
     }
 
@@ -1840,9 +2063,12 @@
         return String(value).toLowerCase();
       }) : [];
       const available = new Set(hasStatus ? (declared.length ? declared : [current]) : []);
+      const scanning = data && data.scheduler && Array.isArray(data.scheduler.enabledChains)
+        ? data.scheduler.enabledChains.map(function (value) { return String(value).toLowerCase(); }) : [];
+      const visibleTabs = scanning.length > 1 ? new Set(scanning) : available;
       byId('chainSwitcher').innerHTML = chainCatalog.map(function (chain) {
         const isActive = chain.id === current;
-        const supported = available.has(chain.id);
+        const supported = available.has(chain.id) && visibleTabs.has(chain.id);
         return '<button type="button" class="chain-button ' + (isActive ? 'active ' : '') + ((chainSwitching && isActive) || pending === chain.id ? 'switching' : '') + '" data-chain="' + chain.id + '" ' + ((!supported || chainSwitching || Boolean(pending)) ? 'disabled' : '') + '>' + escapeHtml(chainLabel(chain)) + '</button>';
       }).join('');
       const activeItem = chainCatalog.find(function (chain) { return chain.id === current; });
@@ -1851,7 +2077,8 @@
       const pendingLabel = pendingItem ? chainLabel(pendingItem) : pending;
       byId('chainHint').textContent = !hasStatus ? t('chainOfflineHint') : pending
         ? t('chainPendingHint', { current: activeLabel, pending: pendingLabel })
-        : declared.length ? t('chainClickHint', { chain: activeLabel }) : t('chainUnavailableHint', { chain: activeLabel });
+        : scanning.length > 1 ? t('scanSelectionHelp')
+          : declared.length ? t('chainClickHint', { chain: activeLabel }) : t('chainUnavailableHint', { chain: activeLabel });
     }
 
     async function switchActiveChain(chain) {
@@ -1887,6 +2114,20 @@
     }
 
     function providerStatus(data) {
+      if (data.scanProvider === 'AVE') {
+        const cooldown = data.aveMarket?.nextAllowedAt || 0;
+        if (data.aveMarket?.pauseCode === 'AVE_RATE_LIMITED' && cooldown > Date.now()) {
+          return { title: t('gmgnApiRate'), detail: t('aveRetryAt', { time: formatClock(cooldown) }), tone: 'warn' };
+        }
+        if (data.status === 'RATE_LIMITED' && cooldown <= Date.now()) return { title: t('aveRetryReady'), detail: 'AVE', tone: 'warn' };
+        if (data.status === 'DEGRADED') return { title: t('avePartial'), detail: 'AVE', tone: 'warn' };
+        const key = { AVE_AUTH_REQUIRED: 'statusAuth', BUDGET_PAUSED: 'aveBudgetPaused', QUOTA_PAUSED: 'aveQuotaPaused',
+          HOURLY_BUDGET_PAUSED: 'aveHourlyPaused', TOTAL_BUDGET_PAUSED: 'aveTotalPaused',
+          RATE_LIMITED: 'gmgnApiRate', ERROR: 'gmgnApiNetwork' }[data.status];
+        if (key) return { title: t(key), detail: 'AVE', tone: 'warn' };
+        const observed = data.aveMarket?.chains?.[activeChain(data)]?.state === 'observed';
+        return { title: t(observed ? 'providerNormal' : 'waitingState'), detail: 'AVE · ' + t('liveLimits'), tone: observed ? 'good' : 'warn' };
+      }
       const health = data.sourceHealth || {};
       const discovery = health.discovery;
       const audit = health.lastAudit;
@@ -1944,11 +2185,12 @@
     }
 
     function storedLastSuccess(data) {
-      let value = number(data.lastSuccessAt) || number(readStorage('robinhoodRadarLastSuccessAtV1', 0));
+      const storageKey = 'memeRadarLastSuccessAtV2:' + activeChain(data);
+      let value = number(data.lastSuccessAt) || number(readStorage(storageKey, 0));
       const currentSuccess = number(data.lastSuccessAt) || (data.status === 'RUNNING' ? number(data.generatedAt) : 0);
       if (currentSuccess > value) {
         value = currentSuccess;
-        writeStorage('robinhoodRadarLastSuccessAtV1', value);
+        writeStorage(storageKey, value);
       }
       return value;
     }
@@ -2001,12 +2243,13 @@
         byId('scanProgress').textContent = isExplicitlyScanning ? t('backendConfirmedScanning') : t('noLiveProgress');
       }
 
-      byId('fresh').textContent = lastSuccess ? relativeTime(lastSuccess, now) : t('noSuccessfulData');
+      byId('fresh').textContent = lastSuccess ? t('recentSuccess', { time: relativeTime(lastSuccess, now) }) : t('noSuccessfulData');
       byId('dot').classList.toggle('scanning', isExplicitlyScanning);
     }
 
     function renderNotice(data) {
       const notice = byId('notice');
+      notice.hidden = ['RUNNING', 'SCANNING', 'DEGRADED'].includes(data.status);
       if (data.status === 'GMGN_AUTH_REQUIRED') {
         notice.className = 'notice';
         notice.textContent = t('authNotice');
@@ -2101,51 +2344,65 @@
     function renderLive() {
       const chain = viewChain || activeChain(lastData);
       const data = liveData && liveData.chain === chain ? liveData : null;
-      const stale = !data || !data.lastSuccessAt || Date.now() - data.lastSuccessAt > 60000;
-      const status = !liveEnabled ? 'livePaused' : liveOffline ? 'localOffline' : data && data.status === 'RATE_LIMITED' ? 'gmgnApiRate'
+      const stale = !data || data.stale || !data.lastSuccessAt || Date.now() - data.lastSuccessAt > 60000;
+      const status = !liveEnabled ? 'livePaused' : liveOffline ? 'localOffline' : data && data.status === 'BUDGET_PAUSED' ? 'aveBudgetPaused'
+        : data && data.status === 'HOURLY_BUDGET_PAUSED' ? 'aveHourlyPaused' : data && data.status === 'TOTAL_BUDGET_PAUSED' ? 'aveTotalPaused'
+        : data && data.status === 'QUOTA_PAUSED' ? 'aveQuotaPaused' : data && data.status === 'RATE_LIMITED' ? 'gmgnApiRate'
         : data && data.status === 'AUTH_REQUIRED' ? 'statusAuth' : data && data.status === 'ERROR' ? 'gmgnApiNetwork'
-          : !data || data.status === 'LOADING' || data.status === 'WAITING' ? 'livePolling' : stale ? 'liveStale' : 'liveReady';
+          : !data || data.status === 'LOADING' || data.status === 'WAITING' ? 'livePolling'
+            : data.diagnostics && data.diagnostics.pending > 0 && !data.diagnostics.ready ? 'livePending' : stale ? 'liveStale' : 'liveReady';
       byId('liveAuto').checked = liveEnabled;
-      byId('liveState').textContent = t(status);
+      const market = lastData && lastData.aveMarket;
+      const liveState = byId('liveState');
+      const marketBlockedUntil = Math.max(number(market?.nextAllowedAt), number(market?.budget?.blockedUntil));
+      const rateLimitShownAbove = liveEnabled && !liveOffline && (data?.status === 'RATE_LIMITED'
+        || market?.pauseCode === 'AVE_RATE_LIMITED' && marketBlockedUntil > Date.now());
+      liveState.hidden = rateLimitShownAbove;
+      liveState.textContent = rateLimitShownAbove ? '' : t(status);
       const query = byId('liveSearch').value.trim().toLowerCase(), mode = byId('liveSort').value;
-      let rows = (data && data.rows || []).filter(function (row) {
-        return !query || [row.symbol, row.name, row.address].join(' ').toLowerCase().includes(query);
+      const observedRows = unifiedPoolRows(chain);
+      let rows = observedRows.filter(function (row) {
+        return Number.isFinite(voiceSpotlightRank(row, Date.now()))
+          || !query || [row.symbol, row.name, row.address].join(' ').toLowerCase().includes(query);
       });
-      if (mode === 'new') rows = rows.filter(function (row) { return row.newAt && Date.now() - row.newAt < 10 * 60000; });
       rows = rows.slice().sort(function (a, b) {
-        return (mode === 'priority' ? Number(b.priorityBand) - Number(a.priorityBand) : mode === 'new' ? b.newAt - a.newAt : 0)
-          || number(b.volume1m) - number(a.volume1m);
-      }).slice(0, 15);
-      byId('liveMeta').textContent = t('liveMeta', { chain: chainLabel(chainCatalog.find(function (item) { return item.id === chain; })),
-        time: data && data.lastSuccessAt ? relativeTime(data.lastSuccessAt) : t('noRecord'), shown: rows.length, total: data && data.rows.length || 0 }) + ' · ' + t('liveLimits');
+        const aVoice = voiceSpotlightRank(a, Date.now()), bVoice = voiceSpotlightRank(b, Date.now());
+        if (aVoice !== bVoice) return aVoice - bVoice;
+        return (mode === 'new' ? number(b.newAt || b.firstSeenAt) - number(a.newAt || a.firstSeenAt) : 0)
+          || Number(b.auditEligible) - Number(a.auditEligible)
+          || (mode === 'priority' ? Number(b.priorityBand) - Number(a.priorityBand) : 0)
+          || number(b.volume5m) - number(a.volume5m);
+      });
+      const reminded = rows.filter(function (row) { return Number.isFinite(voiceSpotlightRank(row, Date.now())); });
+      rows = reminded.concat(rows.filter(function (row) { return !Number.isFinite(voiceSpotlightRank(row, Date.now())); })
+        .slice(0, Math.max(0, 15 - reminded.length)));
+      byId('liveMeta').textContent = t('liveBrief', { n: rows.length, time: data && data.lastSuccessAt ? relativeTime(data.lastSuccessAt) : t('noRecord') });
+      byId('liveMeta').title = t('liveMeta', { chain: chainLabel(chainCatalog.find(function (item) { return item.id === chain; })),
+        time: data && data.lastSuccessAt ? relativeTime(data.lastSuccessAt) : t('noRecord'), shown: rows.length, total: data && data.receivedCount || 0 })
+        + (data && data.diagnostics ? ' · ' + t('liveCoverage', { received: data.receivedCount || 0, scope: data.diagnostics.inRange,
+          pending: data.diagnostics.pending, stale: observedRows.filter(function (row) { return row.discoveryState === 'STALE'; }).length,
+          ready: observedRows.filter(function (row) { return row.auditEligible; }).length, excluded: data.diagnostics.excluded }) : '');
       const enabledChains = lastData && lastData.scheduler && lastData.scheduler.enabledChains || [];
-      const fingerprint = JSON.stringify([rows, chain, currentLocale, stale, liveOffline, mode, query, enabledChains, [...liveQueued], Math.floor(Date.now() / 60000)]);
+      const fingerprint = JSON.stringify([rows, data && data.diagnostics, chain, currentLocale, stale, liveOffline, mode, query, enabledChains, voiceSpotlight && voiceSpotlight.id, voiceSpotlightSelected, voiceSpotlightSignature, Math.floor(Date.now() / 60000)]);
       if (fingerprint === liveFingerprint) return;
       liveFingerprint = fingerprint;
       byId('liveRows').innerHTML = rows.map(function (row) {
         const isNew = row.newAt && Date.now() - row.newAt < 120000;
-        const audit = row.audit;
-        const auditFresh = audit && Date.now() - audit.at <= 10 * 60000;
-        const decision = audit && ({X_REVIEW:'statusChain', QUALIFIED:'statusChain', HARD_REJECT:'statusRejected', WAIT_RECHECK:'statusWaiting'})[audit.status];
-        const reviewText = audit ? t(decision || 'liveUnreviewed') + ' · ' + relativeTime(audit.at) + (auditFresh ? '' : ' · ' + t('liveStale')) : t('liveUnreviewed');
-        const queued = liveQueued.get(row.chain + ':' + row.address);
-        const isQueued = queued && (!audit || audit.at < queued);
-        const canAudit = !stale && !liveOffline && row.auditEligible && enabledChains.includes(row.chain) && !(audit && audit.status === 'HARD_REJECT');
-        const links = actionLinks({ address:row.address, chain:row.chain, symbol:row.symbol, info:{ website:row.website, twitter:row.twitter } });
+        const spotlight = Number.isFinite(voiceSpotlightRank(row, Date.now()));
+        const links = radarLinks(row);
         const unit = function (label, value, tone) { return '<div><small>' + escapeHtml(label) + '</small><b class="mono ' + (tone || '') + '">' + escapeHtml(value) + '</b></div>'; };
-        return '<article class="live-card' + (isNew ? ' new-sighting' : '') + '"><div class="live-card-head"><strong>' + escapeHtml(row.symbol) + '</strong>'
-          + '<span class="live-tag">' + escapeHtml(isNew ? t('liveNew') : '1m') + '</span></div><div class="muted">' + escapeHtml(row.name) + '</div>'
+        return '<article id="live-card-' + encodeURIComponent(voiceSpotlightKey(row)) + '" tabindex="-1" class="live-card' + (isNew ? ' new-sighting' : '') + (spotlight ? ' voice-highlight' : '') + '"><div class="live-card-head"><strong>' + escapeHtml(row.symbol) + '</strong>'
+          + '<span class="live-tag">' + escapeHtml(t(row.discoveryState === 'PENDING' ? 'livePending' : row.stale ? 'liveStale' : row.auditEligible ? 'liveEligible' : isNew ? 'liveNew' : 'liveUnreviewed')) + '</span></div><div class="muted">' + escapeHtml(row.name) + '</div>'
           + '<div class="addr mono">' + escapeHtml(row.address.slice(0,8) + '…' + row.address.slice(-6)) + '</div>'
-          + '<div class="live-numbers">' + unit('MC / LP', formatMoney(row.marketCap) + ' / ' + formatMoney(row.liquidity))
-          + unit(t('liveVolume'), formatMoney(row.volume1m))
-          + unit(t('liveTrades'), formatCount(row.buys1m) + ' / ' + formatCount(row.sells1m))
-          + unit(t('liveSmart'), formatCount(row.smartMoney) + ' / ' + formatCount(row.holders))
-          + unit(t('liveDelta', {seconds:row.deltaWindowMs ? Math.round(row.deltaWindowMs/1000) : '—'}), formatSignedPercent(row.priceDelta), row.priceDelta > 0 ? 'good' : row.priceDelta < 0 ? 'bad' : '')
-          + unit(t('ageLabel'), formatDuration(Math.max(0, Date.now() - row.createdAt*1000))) + '</div>'
-          + '<div class="live-evidence">' + escapeHtml(reviewText) + '</div>' + links
-          + '<button class="mini-button" type="button" data-live-audit="' + encodeURIComponent(row.address) + '" '
-          + (canAudit && !isQueued ? '' : 'disabled ') + 'title="' + escapeHtml(t('liveAuditScope')) + '">' + escapeHtml(isQueued ? t('liveAuditQueued') : t('liveAudit')) + '</button></article>';
-      }).join('') || '<div class="empty">' + escapeHtml(data && data.lastSuccessAt ? t('liveEmpty') : t(status)) + '</div>';
+          + '<div class="live-numbers">' + unit(t('liveCap'), formatMoney(row.marketCap))
+          + unit(t('liveLp'), Number.isFinite(row.liquidity) ? formatMoney(row.liquidity) : t('liveFetching'))
+          + unit(t('liveVolume'), Number.isFinite(row.volume5m) ? formatMoney(row.volume5m) : t('liveFetching'))
+          + unit(t(row.ageBasis === 'pool' || row.ageBasis === 'trade' ? 'poolAge' : row.ageBasis === 'launch' ? 'launchAge' : 'ageLabel'), row.createdAt ? formatDuration(Math.max(0, Date.now() - row.createdAt*1000)) : t('liveFetching')) + '</div>'
+          + '<small class="muted">' + escapeHtml(row.sourceUpdatedAt ? relativeTime(row.sourceUpdatedAt) : t('noRecord')) + '</small>' + links + '</article>';
+      }).join('') || '<div class="empty">' + escapeHtml(query ? t('liveFilteredEmpty')
+        : data && data.receivedCount > 0 ? t(data.diagnostics && data.diagnostics.outsideRange === data.receivedCount ? 'liveNoScope' : 'liveExcluded')
+          : data && data.lastSuccessAt ? t('liveEmpty') : t(status))
+        + (query ? '<p><button class="mini-button" type="button" data-live-reset>' + escapeHtml(t('liveShowAll')) + '</button></p>' : '') + '</div>';
     }
 
     async function refreshLive() {
@@ -2202,11 +2459,13 @@
       renderEvents(data);
       renderOutcomes(data);
       renderChainSwitcher(data);
-      renderGmgnConnection(data);
+      renderAveMarket(data);
+      if (!aveBusy && data.aveConnection) renderAveConnection(data.aveConnection);
       renderManagement(data);
       renderTelemetry();
       renderLive();
       if (shouldRenderCandidates) renderCandidates();
+      else renderVoiceSpotlight();
     }
 
     function showToast(message) {
@@ -2255,130 +2514,28 @@
         : (existing && existing.decision === decision ? t('undoIgnoredToast') : t('ignoredToast')));
     }
 
-    async function prepareGmgnOnboarding(regenerate) {
-      const textarea = byId('gmgnPublicKey');
-      const copyButton = byId('copyGmgnPublicKey');
-      const createLink = byId('openGmgnCreate');
-      const status = byId('gmgnOnboardingStatus');
-      textarea.value = '';
-      copyButton.disabled = true;
-      createLink.setAttribute('aria-disabled', 'true');
-      createLink.href = 'https://gmgn.ai/ai/generateapi';
-      status.textContent = t('gmgnOnboardingPreparing');
-      status.className = 'onboarding-status';
-      try {
-        const response = await fetch('/api/gmgn-onboarding', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ regenerate: regenerate === true }), signal: AbortSignal.timeout(15000)
-        });
-        const result = await response.json();
-        const createUrl = safeUrl(result.createUrl);
-        if (!response.ok || result.algorithm !== 'Ed25519'
-          || !String(result.publicKey || '').startsWith('-----BEGIN PUBLIC KEY-----')
-          || !createUrl || new URL(createUrl).hostname !== 'gmgn.ai') throw new Error('invalid_onboarding');
-        textarea.value = result.publicKey;
-        copyButton.disabled = false;
-        createLink.href = createUrl;
-        createLink.setAttribute('aria-disabled', 'false');
-        status.textContent = t('gmgnOnboardingReady');
-      } catch {
-        status.textContent = t('gmgnOnboardingFailed');
-        status.className = 'onboarding-status bad';
-      }
+    function renderAveMarket(data) {
+      const market = data.aveMarket;
+      byId('aveBudget').textContent = market ? t('aveBudgetLine', { used: market.budget?.used ?? '—', limit: market.dailyLimit ?? '—',
+        remaining: market.budget?.totalRemaining ?? '—', total: market.totalLimit ?? '—',
+        hourUsed: market.budget?.hourUsed ?? '—', hourLimit: market.hourlyLimit ?? '—' }) : '';
+      byId('aveBudget').title = t('aveBudgetHint');
+      const transport = market?.transport;
+      byId('aveTransport').textContent = transport ? t('aveTransport', { seconds: transport.spacingMs / 1000, level: transport.strikes }) : t('notRead');
+      byId('aveDiagnosticRows').textContent = (transport?.recent || []).slice(-5).reverse().map(function (row) {
+        const reason = 'aveReason_' + row.category;
+        return formatClock(row.at) + ' · ' + row.chain + ' / ' + row.endpoint + ' · HTTP ' + (row.httpStatus || '—') + ' · ' + t(reason);
+      }).join('\n');
     }
-
-    let gmgnKeyMessageKey = '';
-    let gmgnKeyMessageError = false;
-    let gmgnRetryUntil = 0;
-    function renderGmgnConnection(data) {
-      const state = data && data.gmgnConnection;
-      const key = gmgnKeyMessageKey || (state && state.status === 'CHECKING' ? 'gmgnApiConnecting'
-        : state && state.status === 'VERIFIED' ? 'gmgnApiVerified'
-          : state && state.configured ? 'gmgnApiConfigured' : 'gmgnApiLocalOnly');
-      byId('gmgnKeyStatus').textContent = t(key);
-      byId('gmgnKeyStatus').className = 'api-key-status' + (gmgnKeyMessageError ? ' bad'
-        : state && state.status === 'VERIFIED' ? ' good' : '');
-    }
-
-    async function connectGmgnApi(event) {
-      event.preventDefault();
-      const input = byId('gmgnKeyInput');
-      const button = byId('gmgnKeyButton');
-      const status = byId('gmgnKeyStatus');
-      const retrySeconds = Math.ceil((gmgnRetryUntil - Date.now()) / 1000);
-      if (retrySeconds > 0) {
-        status.textContent = t('gmgnApiRateCountdown').replace('{seconds}', String(retrySeconds));
-        status.className = 'api-key-status bad';
-        return;
-      }
-      const apiKey = input.value.trim();
-      if (!apiKey) {
-        status.textContent = t('gmgnApiRequired');
-        status.className = 'api-key-status bad';
-        input.focus();
-        return;
-      }
-
-      input.disabled = true;
-      input.value = '';
-      button.disabled = true;
-      gmgnKeyMessageKey = 'gmgnApiConnecting';
-      gmgnKeyMessageError = false;
-      status.textContent = t('gmgnApiConnecting');
-      status.className = 'api-key-status';
-      try {
-        const response = await fetch('/api/gmgn-key', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apiKey: apiKey }),
-          signal: AbortSignal.timeout(60000)
-        });
-        const result = await response.json();
-        if (!response.ok || result.verified !== true) {
-          const errors = {
-            gmgn_auth_failed: 'gmgnApiInvalid', gmgn_permission_denied: 'gmgnApiPermission',
-            gmgn_rate_limited: 'gmgnApiRate', gmgn_check_busy: 'gmgnApiConnecting',
-            gmgn_timeout: 'gmgnApiNetwork', gmgn_network_error: 'gmgnApiNetwork',
-            gmgn_dependency_missing: 'gmgnApiInstall', gmgn_onboarding_required: 'gmgnApiMismatch',
-            gmgn_signing_key_failed: 'gmgnOnboardingFailed'
-          };
-          gmgnKeyMessageKey = errors[result.error] || 'gmgnApiFailed';
-          if (result.error === 'gmgn_rate_limited') {
-            const seconds = Math.max(1, Math.min(300, Number(result.retryAfterSeconds) || 30));
-            gmgnRetryUntil = Date.now() + seconds * 1000;
-          }
-          throw new Error('gmgn_key_failed');
-        }
-        input.value = '';
-        gmgnKeyMessageKey = '';
-        status.textContent = t('gmgnApiConnected');
-        status.className = 'api-key-status good';
-        showToast(t('gmgnApiConnected'));
-        await refresh();
-      } catch {
-        if (!gmgnKeyMessageKey || gmgnKeyMessageKey === 'gmgnApiConnecting') gmgnKeyMessageKey = 'gmgnApiNetwork';
-        gmgnKeyMessageError = true;
-        const seconds = Math.ceil((gmgnRetryUntil - Date.now()) / 1000);
-        status.textContent = gmgnKeyMessageKey === 'gmgnApiRate' && seconds > 0
-          ? t('gmgnApiRateCountdown').replace('{seconds}', String(seconds)) : t(gmgnKeyMessageKey);
-        status.className = 'api-key-status bad';
-        showToast(status.textContent);
-      } finally {
-        input.value = '';
-        input.disabled = false;
-        const remaining = Math.max(0, gmgnRetryUntil - Date.now());
-        button.disabled = remaining > 0;
-        if (remaining > 0) setTimeout(function () { button.disabled = false; }, remaining + 250);
-      }
-    }
-
     let refreshSequence = 0, acceptedRefresh = 0;
     let aveBusy = false;
     function renderAveConnection(snapshot) {
       const configKey = snapshot?.requiresReentry ? 'aveReentry' : snapshot?.configured ? 'aveKeySaved' : 'aveUnconfigured';
       byId('ave-config-status').dataset.i18n = configKey;
       byId('ave-config-status').textContent = t(configKey);
-      for (const kind of ['data', 'trade']) {
+      byId('aveSummary').textContent = ' · ' + t(configKey);
+      if (!snapshot?.configured) byId('aveSettings').open = true;
+      for (const kind of ['data']) {
         const key = snapshot?.[kind]?.status === 'connected' ? 'aveChecked' : snapshot?.[kind]?.status === 'error' ? 'aveFailed' : snapshot?.[kind]?.configured ? 'aveSaved' : 'aveUnconfigured';
         byId('ave-' + kind + '-status').dataset.i18n = key;
         byId('ave-' + kind + '-status').textContent = t(key);
@@ -2405,10 +2562,12 @@
         if (!response.ok) throw new Error(/^[A-Z_]{1,40}$/.test(result.error) ? result.error : 'AVE_REQUEST');
         byId('ave-api-key').value = '';
         renderAveConnection(result.ave);
+        void refresh();
       } catch (error) {
         delete label.dataset.i18n;
         label.textContent = t('aveFailed') + ' · ' + (/^AVE_[A-Z_]{1,30}$/.test(error.message) ? error.message : 'AVE_CONNECT');
       } finally {
+        byId('ave-api-key').value = '';
         aveBusy = false;
         document.querySelectorAll('.ave-settings button').forEach(button => { button.disabled = false; });
       }
@@ -2436,6 +2595,7 @@
         byId('dot').className = 'dot OFFLINE';
         byId('fresh').textContent = t('cannotConnect');
         byId('notice').className = 'notice bad';
+        byId('notice').hidden = false;
         byId('notice').textContent = t('serviceOfflineNotice');
         renderChainSwitcher(null);
         renderTelemetry();
@@ -2511,6 +2671,7 @@
       requestAnimationFrame(drawParticles);
     }
 
+    attachVoiceSpotlight();
     byId('searchInput').addEventListener('input', renderCandidates);
     byId('liveSearch').addEventListener('input', renderLive);
     byId('liveSort').addEventListener('change', renderLive);
@@ -2518,6 +2679,9 @@
       liveEnabled = event.target.checked; writeStorage('memeRadarLiveEnabledV1', liveEnabled); refreshLive();
     });
     byId('liveRows').addEventListener('click', async function (event) {
+      if (event.target.closest('[data-live-reset]')) {
+        byId('liveSearch').value = ''; byId('liveSort').value = 'priority'; renderLive(); return;
+      }
       const copy = event.target.closest('[data-action="copy"]');
       if (copy) return copyText(decodeURIComponent(copy.dataset.address));
       const button = event.target.closest('[data-live-audit]');
@@ -2536,23 +2700,10 @@
     });
     byId('filterSelect').addEventListener('change', renderCandidates);
     byId('sortSelect').addEventListener('change', renderCandidates);
-    byId('gmgnKeyForm').addEventListener('submit', connectGmgnApi);
     byId('ave-key-form').addEventListener('submit', function (event) { event.preventDefault(); void changeAve('configure'); });
     byId('ave-remove').addEventListener('click', function () { void changeAve('remove'); });
     void refreshAve();
 
-    byId('gmgnOnboardingButton').addEventListener('click', function () {
-      byId('gmgnOnboardingDialog').showModal();
-      prepareGmgnOnboarding(false);
-    });
-    byId('copyGmgnPublicKey').addEventListener('click', function () {
-      const value = byId('gmgnPublicKey').value;
-      if (value) { copyText(value); showToast(t('publicKeyCopied')); }
-    });
-    byId('regenerateGmgnPublicKey').addEventListener('click', function () {
-      if (window.confirm(t('regeneratePublicKeyConfirm'))) prepareGmgnOnboarding(true);
-    });
-    byId('closeGmgnOnboarding').addEventListener('click', function () { byId('gmgnOnboardingDialog').close(); });
     byId('scanSelection').addEventListener('change', function () { selectedChainsDirty = true; });
     byId('saveChains').addEventListener('click', async function () {
       const chains = Array.from(byId('scanSelection').querySelectorAll('input:checked')).map(function (input) { return input.value; });
@@ -2576,7 +2727,7 @@
     });
     byId('disconnectButton').addEventListener('click', async function () {
       if (!window.confirm(t('disconnectConfirm'))) return;
-      try { await postLocal('/api/gmgn-disconnect', {}); gmgnKeyMessageKey = ''; gmgnKeyMessageError = false; await refresh(); }
+      try { await changeAve('remove'); await refresh(); }
       catch { showToast(t('settingsFailed')); }
     });
     byId('exportButton').addEventListener('click', async function () {
