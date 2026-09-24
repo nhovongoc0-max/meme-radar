@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { atomicJson, readJsonWithBackup } from './local-store.mjs';
+import { sanitizeLiveLead } from './live-leads.mjs';
 
 function cleanCandidate(candidate) {
   if (!candidate || typeof candidate !== 'object') return candidate;
@@ -29,6 +30,7 @@ function defaultState() {
     candidates: [],
     rejected: [],
     auditQueue: [],
+    liveLeads: [],
     auditQueueStats: { total: 0, due: 0, neverAudited: 0, waitingRecheck: 0 },
     outcomes: [],
     outcomeSummary: {
@@ -44,14 +46,26 @@ function defaultState() {
 function migrateState(raw) {
   const base = defaultState();
   if (!raw || typeof raw !== 'object') return base;
+  const activeChain = typeof raw.activeChain === 'string' ? raw.activeChain : base.activeChain;
+  const cleanLeads = (rows, chain) => (Array.isArray(rows) ? rows : [])
+    .flatMap(row => {
+      const lead = sanitizeLiveLead(row, chain);
+      return lead ? [lead] : [];
+    }).slice(0, 200);
+  const chainStates = Object.fromEntries(Object.entries(raw.chainStates || {}).flatMap(([chain, scope]) => {
+    if (!scope || typeof scope !== 'object') return [];
+    return [[chain, { ...scope, liveLeads: cleanLeads(scope.liveLeads, chain) }]];
+  }));
   return {
     ...base,
     ...raw,
     version: 2,
     scanInProgress: false,
+    chainStates,
     candidates: Array.isArray(raw.candidates) ? raw.candidates.map(cleanCandidate) : [],
     rejected: Array.isArray(raw.rejected) ? raw.rejected : [],
     auditQueue: Array.isArray(raw.auditQueue) ? raw.auditQueue : [],
+    liveLeads: cleanLeads(raw.liveLeads, activeChain),
     outcomes: Array.isArray(raw.outcomes) ? raw.outcomes : [],
     events: Array.isArray(raw.events) ? raw.events : []
   };

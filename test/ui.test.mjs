@@ -152,13 +152,71 @@ test('翻译词典完整覆盖静态挂点和动态文案键', () => {
   for (const key of new Set([...staticKeys, ...dynamicKeys])) assert.ok(messages[key], '缺少翻译键：' + key);
 });
 
-test('多链切换仅向本地后端提交白名单链标识', () => {
+test('顶部链标签可直接加入或切换扫描，且始终最多三条', async () => {
   for (const chain of ['sol', 'bsc', 'base', 'eth', 'robinhood']) {
     assert.match(html, new RegExp("id: '" + chain + "'"));
   }
-  assert.match(html, /fetch\('\/api\/active-chain'/);
-  assert.match(html, /JSON\.stringify\(\{ chain: chain \}\)/);
   assert.match(html, /renderChainSwitcher\(null\)/);
+  const start = html.indexOf('function activeChain('), end = html.indexOf('function providerStatus(', start);
+  assert.ok(start >= 0 && end > start);
+  function harness(enabled, active = 'bsc', view = '') {
+    const elements = { chainSwitcher: { innerHTML: '' }, chainHint: { textContent: '' } };
+    const requests = [], storage = [], toasts = [];
+    const context = {
+      chainCatalog: ['sol', 'bsc', 'base', 'eth', 'robinhood'].map(id => ({ id })),
+      chainSwitching: false, selectedChainsDirty: true, viewChain: view,
+      lastData: { activeChain: active, supportedChains: ['sol', 'bsc', 'base', 'eth', 'robinhood'], scheduler: { enabledChains: enabled, scanningChain: active } },
+      byId: id => elements[id], chainLabel: chain => chain.id, escapeHtml: String, t: key => key,
+      showToast: value => toasts.push(value), currentLocale: 'en', hasChinese: () => false,
+      postLocal: async (url, body) => { requests.push({ url, body }); return { enabledChains: body.chains }; },
+      writeStorage: (key, value) => storage.push({ key, value }), refresh: async () => {}
+    };
+    vm.runInNewContext(html.slice(start, end) + ';this.renderChainSwitcher=renderChainSwitcher;this.switchActiveChain=switchActiveChain;this.ensureVisibleChain=ensureVisibleChain;', context);
+    return { context, elements, requests, storage, toasts };
+  }
+
+  const adding = harness(['bsc']);
+  adding.context.renderChainSwitcher(adding.context.lastData);
+  for (const chain of ['sol', 'bsc', 'base', 'eth', 'robinhood']) {
+    const button = adding.elements.chainSwitcher.innerHTML.match(new RegExp('<button[^>]*data-chain="' + chain + '"[^>]*>'))?.[0];
+    assert.ok(button, chain + ' 应显示');
+    assert.doesNotMatch(button, /\sdisabled(?:\s|>)/, chain + ' 应可点击');
+  }
+  await adding.context.switchActiveChain('base');
+  assert.deepEqual(JSON.parse(JSON.stringify(adding.requests)), [{ url: '/api/scan-chains', body: { chains: ['bsc', 'base'] } }]);
+  assert.equal(adding.context.viewChain, 'base');
+
+  const replacing = harness(['bsc', 'sol', 'base'], 'bsc');
+  await replacing.context.switchActiveChain('eth');
+  assert.deepEqual(JSON.parse(JSON.stringify(replacing.requests)), [{ url: '/api/scan-chains', body: { chains: ['eth', 'sol', 'base'] } }]);
+  assert.equal(replacing.context.viewChain, 'eth');
+
+  const viewing = harness(['bsc', 'sol'], 'bsc');
+  await viewing.context.switchActiveChain('sol');
+  assert.deepEqual(viewing.requests, []);
+  assert.equal(viewing.context.viewChain, 'sol');
+
+  const restored = harness(['bsc', 'robinhood'], 'robinhood', 'eth');
+  assert.equal(restored.context.ensureVisibleChain(restored.context.lastData), true);
+  assert.equal(restored.context.viewChain, 'robinhood');
+  assert.deepEqual(JSON.parse(JSON.stringify(restored.storage)), [{ key: 'memeRadarViewChainV1', value: 'robinhood' }]);
+  assert.doesNotMatch(html.slice(start, end), /\/api\/active-chain/);
+});
+
+test('AVE 健康状态使用短句，限频仍显示恢复时间', () => {
+  const start = html.indexOf('function providerStatus('), end = html.indexOf('function freshnessStatus(', start);
+  const now = Date.now();
+  const context = { Date, activeChain: data => data.activeChain, formatClock: value => 'clock:' + value,
+    t: (key, args) => args ? key + ':' + JSON.stringify(args) : key, number: Number, relativeTime: String };
+  vm.runInNewContext(html.slice(start, end) + ';this.providerStatus=providerStatus;', context);
+  const healthy = context.providerStatus({ scanProvider: 'AVE', activeChain: 'bsc', status: 'RUNNING',
+    aveMarket: { chains: { bsc: { state: 'observed' } } } });
+  assert.equal(healthy.detail, 'avePollingHealthy');
+  assert.doesNotMatch(healthy.detail, /liveLimits/);
+  const limited = context.providerStatus({ scanProvider: 'AVE', activeChain: 'bsc', status: 'RATE_LIMITED',
+    aveMarket: { pauseCode: 'AVE_RATE_LIMITED', nextAllowedAt: now + 60_000 } });
+  assert.match(limited.detail, /aveRetryAt/);
+  assert.match(limited.detail, /clock:/);
 });
 
 test('页面不再公开展示严格筛选规则', () => {

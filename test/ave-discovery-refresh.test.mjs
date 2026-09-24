@@ -8,10 +8,12 @@ import { LiveDiscovery, normalizeLiveRows, discoveryDiagnostics } from '../src/l
 const AT = Date.UTC(2026, 8, 22, 12), ca = n => '0x' + n.toString(16).padStart(40, '0');
 function fixture({ perPage = [[1]], caps = {}, noPoolCap = false, oldToken = false, enrichLimit = 3,
   maxTrendingPages = 3, rotateTrendingPages = false, failPage = -1, pageStatus = 429,
-  failLaterPool = false, latency = 0, laterHook = false } = {}) {
+  failLaterPool = false, latency = 0, laterHook = false, ready = [] } = {}) {
   let at = AT, budget = null;
   const calls = [], token = n => ({ token: ca(n), chain: 'bsc', name: 'Fixture', symbol: 'T' + n,
-    current_price_usd: '1', market_cap: String(caps[n] ?? 40000), holders: 30, updated_at: Math.floor((oldToken ? AT - 120000 : at) / 1000) });
+    current_price_usd: '1', market_cap: String(caps[n] ?? 40000), holders: 30, updated_at: Math.floor((oldToken ? AT - 120000 : at) / 1000),
+    ...(ready.includes(n) ? { main_pair_tvl: '12000', token_tx_volume_usd_5m: '500',
+      token_buy_volume_u_5m: '300', token_sell_volume_u_5m: '200', launch_at: Math.floor(at / 1000) - 3600 } : {}) });
   const client = new AveClient({ apiKeyProvider: () => 'mock-not-live-key', now: () => at, pause: async ms => { at += ms; },
     enrichLimit, maxTrendingPages, rotateTrendingPages,
     readBudget: () => budget, saveBudget: next => { budget = structuredClone(next); }, fetchImpl: async value => {
@@ -31,7 +33,8 @@ function fixture({ perPage = [[1]], caps = {}, noPoolCap = false, oldToken = fal
         ...(noPoolCap ? {} : { market_cap: '42000' }), tvl: '12000', updated_at: Math.floor(at / 1000),
         created_at: Math.floor(at / 1000) - 3600, volume_u_5m: '500', buy_volume_u_5m: '300', sell_volume_u_5m: '200' });
     } });
-  return { client, calls, now: () => at, advance: ms => { at += ms; } };
+  return { client, calls, now: () => at, advance: ms => { at += ms; },
+    setPage: (page, ids) => { perPage[page] = ids; } };
 }
 const screen = (r, at) => discoveryScreen(r, { ...config, chain: 'bsc' }, at / 1000);
 async function finishStagedEnrichment(f) {
@@ -104,6 +107,48 @@ test('single-request page rotation revisits the head between tail pages without 
     `/v2/tokens/trending?chain=bsc&current_page=${page}&page_size=100`));
   assert.equal(f.client.snapshot().metrics.byKind.trending.requests, 4,
     'rotation keeps exactly one paid trending request per discovery round');
+});
+
+test('single-request rotation leaves an in-range head page when its final safety screen has zero ready leads', async () => {
+  const f = fixture({ perPage: [[1, 2, 3, 4, 5, 6, 7], [8], [9]], enrichLimit: 0,
+    maxTrendingPages: 1, rotateTrendingPages: true });
+  for (let round = 0; round < 4; round++) {
+    await f.client.discover('bsc');
+    if (round < 3) f.advance(241000);
+  }
+  assert.deepEqual(f.calls.filter(url => url.includes('/trending')), [0, 1, 0, 2].map(page =>
+    `/v2/tokens/trending?chain=bsc&current_page=${page}&page_size=100`));
+  assert.equal(f.client.snapshot().metrics.byKind.trending.requests, 4,
+    'screen-aware rotation must not add a second request to any round');
+});
+
+test('single-request rotation uses ready-lead novelty instead of repeating a productive but unchanged head forever', async () => {
+  const f = fixture({ perPage: [[1, 2, 3, 4], [8]], ready: [1, 2, 3, 4, 8], enrichLimit: 0,
+    maxTrendingPages: 1, rotateTrendingPages: true });
+  for (let round = 0; round < 3; round++) {
+    await f.client.discover('bsc');
+    if (round < 2) f.advance(241000);
+  }
+  assert.deepEqual(f.calls.filter(url => url.includes('/trending')), [0, 0, 1].map(page =>
+    `/v2/tokens/trending?chain=bsc&current_page=${page}&page_size=100`));
+  assert.equal(f.client.snapshot().metrics.byKind.trending.requests, 3);
+});
+
+test('single-request rotation leaves a productive head when it adds fewer than three novel ready leads', async () => {
+  const f = fixture({ perPage: [[1, 2, 3, 4], [8]], ready: [1, 2, 3, 4, 5, 8], enrichLimit: 0,
+    maxTrendingPages: 1, rotateTrendingPages: true });
+  await f.client.discover('bsc');
+  f.advance(241000);
+  // Only token 5 is new on the second head visit; the other ready rows were
+  // already shown. A single new row must not pin the scanner to page zero.
+  f.setPage(0, [1, 2, 3, 4, 5]);
+  await f.client.discover('bsc');
+  f.advance(241000);
+  await f.client.discover('bsc');
+  assert.deepEqual(f.calls.filter(url => url.includes('/trending')), [0, 0, 1].map(page =>
+    `/v2/tokens/trending?chain=bsc&current_page=${page}&page_size=100`));
+  assert.equal(f.client.snapshot().metrics.byKind.trending.requests, 3,
+    'novelty-based rotation must still keep one paid trending request per round');
 });
 
 test('four-minute round refreshes list membership and selected quotes; passive UI costs nothing', async () => {

@@ -182,6 +182,9 @@ test('default open-source fast feed never turns a successful hot-list read into 
   assert.equal(audits, 0);
   assert.equal(state.value.status, 'RUNNING');
   assert.equal(state.value.prequalifiedCount, 1);
+  assert.equal(state.value.liveLeads.length, 1, 'a real fresh pass is persisted for display between chain turns');
+  assert.equal(state.value.liveLeads[0].sourceUpdatedAt > 0, true);
+  assert.equal(state.value.liveLeads[0].displayUntil - state.value.liveLeads[0].lastConfirmedAt, config.liveLeadRetentionMs);
   assert.equal(Number.isFinite(state.value.auditQueueStats.estimatedMinutes), false);
 });
 

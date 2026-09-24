@@ -232,6 +232,7 @@
       transition: border-color .16s ease, background .16s ease, color .16s ease, transform .16s ease;
     }
     .chain-button:hover:not(:disabled) { border-color: var(--cyan); color: var(--cyan); transform: translateY(-1px); }
+    .chain-button.scanning:not(.active) { border-color: #31584f; color: #d7e6e1; }
     .chain-button.active { border-color: var(--green); background: #153328; color: var(--green); box-shadow: 0 0 16px #43efaa22; }
     .chain-button:disabled { opacity: .38; cursor: not-allowed; }
     .chain-button.switching { color: var(--amber); border-color: var(--amber); }
@@ -730,7 +731,7 @@
             <option value="ar">العربية</option>
           </select>
         </label>
-        <button id="updateButton" class="mini-button" type="button" data-i18n="updateButton">一键更新</button>
+        <a id="updateButton" class="mini-button" href="https://github.com/nhovongoc0-max/meme-radar/releases/latest" target="_blank" rel="noopener noreferrer" data-i18n="updateButton">下载最新版</a>
         <div class="status" role="status" aria-live="polite">
           <i id="dot" class="dot"></i>
           <span id="fresh" data-i18n="waitingState">等待状态</span>
@@ -804,7 +805,7 @@
         <details id="manageDetails">
           <summary data-i18n="manageTitle">⚙ 扫描设置与记录</summary>
           <div class="manage-body">
-            <p data-i18n="scanSelectionHelp">选择1–3条链轮询，共享接口额度；切换上方标签只改变查看页面。</p>
+            <p data-i18n="scanSelectionHelp">选择1–3条链轮询；点击未启用链会加入或替换轮询链，并等待后台调度。</p>
             <div id="scanSelection" class="manage-actions"></div>
             <div class="manage-actions">
               <button id="saveChains" class="mini-button" type="button" data-i18n="saveChains">保存扫描链</button>
@@ -889,16 +890,6 @@
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <dialog id="updateDialog" aria-labelledby="updateTitle">
-    <h3 id="updateTitle" data-i18n="updateTitle">版本更新</h3>
-    <p id="updateVersion" class="mono"></p>
-    <p id="updateMessage" role="status" aria-live="polite"></p>
-    <p class="muted" data-i18n="updatePreserve">保留本机配置和记录；校验通过后重启，失败回滚。</p>
-    <div class="manage-actions">
-      <button id="updateInstall" class="mini-button" type="button" hidden data-i18n="updateInstall">确认更新并重启</button>
-      <button id="updateClose" class="mini-button" type="button" data-i18n="closeAction">关闭</button>
-    </div>
-  </dialog>
   <dialog id="noteDialog">
     <h3 data-i18n="editNote">编辑备注</h3><p id="noteAddress" class="mono"></p>
     <textarea id="noteInput" maxlength="500" aria-label="Note" data-i18n-aria="editNote"></textarea>
@@ -906,7 +897,6 @@
   </dialog>
 
   <script type="module" src="/voice-ui.mjs"></script>
-  <script type="module" src="/update-ui.mjs"></script>
   <script>
     const byId = function (id) { return document.getElementById(id); };
     const supportedLocales = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko', 'ar'];
@@ -928,10 +918,7 @@
       voiceSpotlightExpired: ["提醒或证据已过期 · 请重新复核","提醒或證據已過期 · 請重新複核","Alert or evidence expired · Review again","通知または証拠の期限切れ・再確認してください","알림 또는 증거 만료 · 다시 검토하세요","انتهت صلاحية التنبيه أو الأدلة · راجع مجددًا"],
       voiceSpotlightChanged: ["条件已变化 · 等待重新复核","條件已變化 · 等待重新複核","Conditions changed · Awaiting review","条件が変化・再確認待ち","조건 변경 · 재검토 대기","تغيّرت الشروط · بانتظار إعادة المراجعة"],
       voiceSpotlightRow: ["本次语音提醒","本次語音提醒","This voice alert","今回の音声通知","이번 음성 알림","هذا التنبيه الصوتي"],
-      updateButton: ["一键更新","一鍵更新","Update","更新","업데이트","تحديث"],
-      updateTitle: ["版本更新","版本更新","App update","バージョン更新","버전 업데이트","تحديث التطبيق"],
-      updateInstall: ["确认更新并重启","確認更新並重啟","Update and restart","更新して再起動","업데이트 후 재시작","تحديث وإعادة تشغيل"],
-      updatePreserve: ["保留配置与记录；校验后重启，失败回滚。","保留設定與記錄；驗證後重啟，失敗回復。","Settings and records stay; verified updates restart, with rollback on failure.","設定と記録を保持。検証後に再起動、失敗時は復元。","설정·기록 유지. 검증 후 재시작, 실패 시 복구.","تُحفظ الإعدادات والسجلات؛ إعادة التشغيل بعد التحقق والتراجع عند الفشل."],
+      updateButton: ["下载最新版","下載最新版","Latest release","最新版を入手","최신 버전 받기","تنزيل أحدث إصدار"],
       aveBudgetPaused: ["本机预算已用完","本機預算已用完","Local budget exhausted","本機の予算を消費","로컬 예산 소진","نفدت الميزانية المحلية"],
       aveHourlyPaused: ["本小时预算暂缓","本小時預算暫緩","Hourly budget pause","時間予算による一時停止","시간 예산 일시정지","توقف ميزانية الساعة"],
       aveTotalPaused: ["总预算已用完，需核对额度","總預算已用完，需核對額度","Total budget exhausted; verify quota","総予算終了・残量を確認","총 예산 소진 · 할당량 확인","نفدت الميزانية الإجمالية؛ تحقق من الحصة"],
@@ -974,7 +961,7 @@
       liveCap: ['市值','市值','Market cap','時価総額','시가총액','القيمة السوقية'],
       liveLp: ['流动性','流動性','Liquidity','流動性','유동성','السيولة'],
       radarDisclaimer: ['自动筛选 · 观察线索，非安全保证','自動篩選 · 觀察線索，非安全保證','Automatic screening · Signals, not a safety guarantee','自動選別・安全性を保証しません','자동 필터링 · 안전 보장 아님','فحص تلقائي · إشارات وليست ضمانًا للأمان'],
-      liveWarning: ['先发现，再核验。未完成深审，不代表安全或买入建议。','先發現，再核驗。未完成深審，不代表安全或買入建議。','Discover first, verify next. Not fully audited; neither safe nor a buy recommendation.','発見後に検証。詳細審査前であり、安全性や購入の推奨ではありません。','발견 후 검증. 심층 감사 전이며 안전 보장이나 매수 추천이 아닙니다.','اكتشاف ثم تحقق. لا يعني الأمان أو توصية بالشراء قبل التدقيق.'],
+      liveWarning: ['新候选窗口10分钟；掉出轮换页的最近线索最多展示30分钟，不语音、不核验。','新候選視窗10分鐘；掉出輪換頁的最近線索最多顯示30分鐘，不語音、不核驗。','New-candidate window: 10 min. Recent leads that rotate off-page may remain for up to 30 min, without voice alerts or review.','新規候補は10分間。巡回ページから外れた最近の候補は最長30分表示しますが、音声通知や審査の対象外です。','신규 후보 창은 10분입니다. 순환 페이지에서 빠진 최근 단서는 최대 30분 표시되지만 음성 알림과 검토 대상이 아닙니다.','نافذة المرشح الجديد 10 دقائق؛ قد تبقى الإشارات الحديثة التي خرجت من صفحة التناوب لمدة 30 دقيقة دون تنبيه صوتي أو مراجعة.'],
       liveAuto: ['自动更新','自動更新','Auto-update','自動更新','자동 업데이트','تحديث تلقائي'],
       liveSort: ['发现排序','發現排序','Discovery order','発見の並び順','발견 정렬','ترتيب الاكتشاف'],
       livePriority: ['2–8万市值优先','2–8萬市值優先','$20–80K cap first','時価総額2～8万ドル優先','시총 2~8만 달러 우선','أولوية لقيمة 20–80 ألف دولار'],
@@ -983,6 +970,7 @@
       livePending: ['待补行情','待補行情','Awaiting market data','相場データ待ち','시세 데이터 대기','بانتظار بيانات السوق'],
       liveFetching: ['补充中','補充中','Loading','取得中','불러오는 중','جارٍ الاستكمال'],
       liveEligible: ['可核验','可核驗','Ready for review','検証可能','검토 가능','جاهز للتحقق'],
+      liveRetained: ['最近线索 · 仅展示','最近線索 · 僅顯示','Recent lead · display only','最近の候補・表示のみ','최근 단서 · 표시 전용','إشارة حديثة · للعرض فقط'],
       liveCoverage: ['收到 {received} · 范围内 {scope} · 待补 {pending} · 待更新 {stale} · 可核验 {ready} · 已过滤 {excluded}',
         '收到 {received} · 範圍內 {scope} · 待補 {pending} · 待更新 {stale} · 可核驗 {ready} · 已過濾 {excluded}',
         'Received {received} · In scope {scope} · Pending {pending} · Stale {stale} · Reviewable {ready} · Filtered {excluded}',
@@ -1012,9 +1000,11 @@
       liveAuditDenied: ['暂不能排队：证据已旧、超出原初筛范围或已被安全拒绝','暫不能排隊：證據已舊、超出原初篩範圍或已被安全拒絕','Cannot queue: stale, outside prefilter or safety-rejected','予約不可：古い証拠・対象外・安全上除外','대기 불가: 오래됨, 범위 밖 또는 안전 거부','تعذر الطلب: بيانات قديمة أو خارج الفلتر أو مرفوض أمنيًا'],
       liveQueueFull: ['核验队列已满，请先等待已有请求完成','核驗佇列已滿，請先等待已有請求完成','Audit queue full; wait for pending requests','審査予約が満杯です。完了をお待ちください','감사 대기열 가득 참; 기존 요청 완료 대기','طابور التدقيق ممتلئ؛ انتظر انتهاء الطلبات'],
       liveLimits: ['全局每5分钟最多发起1条链的热榜请求；多链轮询。429后改为8分钟（必要时15分钟）；5分钟档失败后24小时内不再试探。','全域每5分鐘最多發起1條鏈的熱榜請求；多鏈輪詢。429後改為8分鐘（必要時15分鐘）；5分鐘檔失敗後24小時內不再試探。','Globally, at most one chain leaderboard request starts every 5 min; chains rotate. HTTP 429 backs off to 8 min (15 if needed); after a failed 5-min probe, that cadence is not tried again for 24 h.','全体で5分に最大1チェーンのランキング取得を開始し、複数チェーンは巡回します。429時は8分（必要なら15分）に延長し、5分間隔の試行失敗後24時間は同じ間隔を再試行しません。','전체에서 5분마다 체인 1개의 인기 목록 요청만 시작하며 여러 체인은 순환합니다. 429 발생 시 8분(필요하면 15분)으로 늘리고, 5분 간격 시도 실패 후 24시간 동안 같은 간격을 다시 시도하지 않습니다.','يبدأ عالميًا طلب قائمة رائجة لسلسلة واحدة كحد أقصى كل 5 دقائق، مع التناوب بين السلاسل. عند 429 يتراجع إلى 8 دقائق (15 عند الحاجة)، وبعد فشل تجربة فاصل 5 دقائق لا يعيد تجربة هذا الفاصل لمدة 24 ساعة.'],
+      avePollingHealthy: ['轮询正常', '輪詢正常', 'Polling normally', '正常に巡回中', '정상 순환 중', 'الاستطلاع يعمل'],
+      aveAwaitingFirstScan: ['等待本链首轮', '等待本鏈首輪', 'Waiting for this chain', 'このチェーンの初回待ち', '해당 체인 첫 스캔 대기', 'بانتظار أول مسح لهذه الشبكة'],
       manageTitle: ['⚙ 扫描设置与记录','⚙ 掃描設定與記錄','⚙ Scan settings & records','⚙ スキャン設定と記録','⚙ 스캔 설정 및 기록','⚙ إعدادات المسح والسجلات'],
       skippedAfterReject: ['安全项已拒绝，后续检查已跳过','安全項已拒絕，後續檢查已略過','Safety rejection; further checks skipped','安全項目で除外。後続チェックは省略','안전 항목에서 제외; 후속 검사 생략','رُفض لأسباب أمنية؛ تم تخطي الفحوص اللاحقة'],
-      scanSelectionHelp: ['选择1–3条链轮询，共享接口额度；多链时上方标签只切换查看。','選擇1–3條鏈輪詢，共享額度；多鏈時上方標籤只切換檢視。','Poll 1–3 chains with a shared request budget; tabs change the view in multi-chain mode.','1～3チェーンを共通枠で巡回。複数チェーン時のタブは表示切替のみ。','공유 요청 한도로 1~3개 체인을 순환합니다. 다중 모드의 탭은 보기만 전환합니다.','استطلع 1–3 شبكات بميزانية طلبات مشتركة؛ التبويبات تغيّر العرض في الوضع المتعدد.'],
+      scanSelectionHelp: ['选择1–3条链轮询；点击已启用链只查看，未启用链会加入，满3条时替换当前查看链。','選擇1–3條鏈輪詢；點擊已啟用鏈只檢視，未啟用鏈會加入，滿3條時取代當前檢視鏈。','Poll 1–3 chains. Enabled-chain tabs only change the view; inactive chains join polling, replacing the viewed chain when all 3 slots are full.','1～3チェーンを巡回。有効なタブは表示のみ切替え、未選択チェーンは追加され、3件済みなら表示中のチェーンを置換します。','1~3개 체인을 순환합니다. 활성 체인 탭은 보기만 바꾸고, 비활성 체인은 추가되며 3개가 찼 경우 현재 보는 체인을 교체합니다.','استطلع 1–3 شبكات. تبويبات الشبكات المفعلة تغير العرض فقط؛ تنضم غير المفعلة إلى التناوب، وتستبدل الشبكة المعروضة عند امتلاء الخانات الثلاث.'],
       saveChains: ['保存扫描链','儲存掃描鏈','Save scan chains','対象を保存','스캔 체인 저장','حفظ الشبكات'],
       enableAlerts: ['开启桌面提醒','開啟桌面提醒','Enable desktop alerts','通知を有効化','데스크톱 알림 켜기','تفعيل التنبيهات'],
       muteAlerts: ['静音桌面提醒','靜音桌面提醒','Mute desktop alerts','通知をミュート','알림 끄기','كتم التنبيهات'],
@@ -1168,10 +1158,13 @@
       chainRobinhood: ['罗宾汉链', '羅賓漢鏈', 'Robinhood Chain', 'Robinhoodチェーン', '로빈후드 체인', 'شبكة Robinhood'],
       chainOfflineHint: ['本地服务离线，暂时不能切换链路', '本地服務離線，暫時不能切換鏈路', 'Local service is offline; chain switching is unavailable', 'ローカルサービスがオフラインのため切替できません', '로컬 서비스가 오프라인이라 체인을 바꿀 수 없습니다', 'الخدمة المحلية غير متصلة؛ لا يمكن تبديل الشبكة'],
       chainPendingHint: ['当前：{current} · 本轮结束后切换到{pending}', '目前：{current} · 本輪結束後切換到{pending}', 'Current: {current} · switch to {pending} after this cycle', '現在：{current}・今回終了後に{pending}へ切替', '현재: {current} · 이번 주기 후 {pending}(으)로 전환', 'الحالية: {current} · التبديل إلى {pending} بعد هذه الدورة'],
-      chainClickHint: ['当前：{chain} · 点击其他链会立即重新扫描', '目前：{chain} · 點擊其他鏈會立即重新掃描', 'Current: {chain} · choose another chain to rescan now', '現在：{chain}・別チェーンを選ぶと即再スキャン', '현재: {chain} · 다른 체인을 누르면 즉시 재스캔', 'الحالية: {chain} · اختر شبكة أخرى لإعادة المسح فورًا'],
+      chainReadyHint: ['点击已启用链只查看；未启用链会加入，满3条时替换当前查看链', '點擊已啟用鏈只查看；未啟用鏈會加入，滿3條時取代當前查看鏈', 'Enabled chains change the view; inactive chains join polling and replace the viewed chain when all 3 slots are full', '有効なチェーンは表示切替のみ。未選択チェーンは追加され、3件済みなら表示中を置換', '활성 체인은 보기만 바꾸고, 비활성 체인은 추가되며 3개가 차면 현재 보는 체인을 교체', 'الشبكات المفعلة تغير العرض فقط؛ تنضم غير المفعلة للتناوب وتستبدل المعروضة عند امتلاء الثلاث'],
+      chainClickHint: ['当前：{chain} · 点击其他链后等待轮询调度', '目前：{chain} · 點擊其他鏈後等待輪詢調度', 'Current: {chain} · changes wait for the polling scheduler', '現在：{chain}・変更後は巡回スケジュールを待ちます', '현재: {chain} · 변경 후 순환 스케줄을 기다립니다', 'الحالية: {chain} · تنتظر التغييرات جدول التناوب'],
       chainUnavailableHint: ['当前：{chain} · 后端尚未启用多链切换', '目前：{chain} · 後端尚未啟用多鏈切換', 'Current: {chain} · backend has not enabled multi-chain switching', '現在：{chain}・バックエンドの複数チェーン切替は未有効', '현재: {chain} · 백엔드 다중 체인 전환 미지원', 'الحالية: {chain} · تبديل الشبكات غير مفعّل في الخلفية'],
-      switchingToast: ['正在切换扫描链路并启动新一轮扫描……', '正在切換掃描鏈路並啟動新一輪掃描……', 'Switching chain and starting a new scan…', 'チェーンを切替えて新規スキャンを開始中…', '체인 전환 및 새 스캔 시작 중…', 'جارٍ تبديل الشبكة وبدء مسح جديد…'],
+      switchingToast: ['正在更新轮询链，等待后台调度……', '正在更新輪詢鏈，等待後台調度……', 'Updating polling chains; waiting for the scheduler…', '巡回チェーンを更新。スケジュールを待っています…', '순환 체인 업데이트 중; 스케줄을 기다립니다…', 'جارٍ تحديث شبكات التناوب؛ بانتظار الجدول…'],
       switchAccepted: ['链路切换已受理，正在等待首轮结果', '鏈路切換已受理，正在等待首輪結果', 'Chain switch accepted; waiting for first result', '切替を受理。最初の結果を待っています', '체인 전환 수락; 첫 결과 대기 중', 'تم قبول التبديل؛ بانتظار أول نتيجة'],
+      chainAdded: ['已加入轮询，正在等待本链结果', '已加入輪詢，正在等待本鏈結果', 'Added to polling; waiting for this chain', '巡回に追加。結果を待っています', '순환 대상에 추가됨; 결과 대기 중', 'تمت الإضافة إلى الاستطلاع؛ بانتظار النتيجة'],
+      chainReplaced: ['已替换当前查看链，等待轮询调度', '已取代當前查看鏈，等待輪詢調度', 'Replaced the viewed chain; waiting for polling', '表示中のチェーンを置換し、巡回を待っています', '현재 보는 체인을 교체했으며 순환을 기다립니다', 'تم استبدال الشبكة المعروضة؛ بانتظار التناوب'],
       unsupportedChain: ['当前后端不支持这条链', '目前後端不支援這條鏈', 'This chain is not supported by the backend', 'このチェーンは未対応です', '백엔드가 이 체인을 지원하지 않습니다', 'هذه الشبكة غير مدعومة في الخلفية'],
       switchUnavailable: ['后端尚未启用链路切换', '後端尚未啟用鏈路切換', 'Chain switching is not enabled', 'チェーン切替は未有効です', '체인 전환이 활성화되지 않았습니다', 'تبديل الشبكات غير مفعّل'],
       scanBusy: ['当前扫描尚未结束，请稍后再切换', '目前掃描尚未結束，請稍後再切換', 'A scan is still running; switch later', 'スキャン中です。後で切替えてください', '스캔이 진행 중입니다. 잠시 후 전환하세요', 'المسح جارٍ؛ بدّل لاحقًا'],
@@ -1771,10 +1764,17 @@
       }).map(voiceSpotlightKey));
       const rows = new Map((data && data.rows || []).filter(function (row) {
         const firstSeenAt = number(row.firstSeenAt || row.newAt || row.sourceUpdatedAt);
+        const retained = row.retainedSnapshot === true && row.displayEligible === true && row.evidenceStale === true;
+        const current = row.discoveryState === 'READY' && row.auditEligible === true && row.stale !== true
+          && firstSeenAt > 0 && firstSeenAt <= now;
         return !rejected.has(voiceSpotlightKey(row)) && !['HARD_REJECT', 'REJECTED'].includes(row.audit && row.audit.status)
-          && row.discoveryState === 'READY' && row.auditEligible === true && row.stale !== true
-          && firstSeenAt > 0 && firstSeenAt <= now && now - firstSeenAt <= 15 * 60000;
+          && (current || retained);
       }).map(function (row) {
+        if (row.retainedSnapshot === true) {
+          const retained = { ...row, voiceSource: 'retained', stale: true, auditEligible: false,
+            discoveryState: 'RETAINED', displayEligible: true, evidenceStale: true };
+          return [voiceSpotlightKey(retained), retained];
+        }
         const expired = row.stale || !(row.sourceUpdatedAt > 0) || row.sourceUpdatedAt > now
           || now - row.sourceUpdatedAt > 60000 || !(row.expiresAt > now);
         const item = { ...row, voiceSource: 'live', stale: expired, auditEligible: row.auditEligible && !expired,
@@ -2055,6 +2055,19 @@
       return String((data && (data.activeChain || (data.policy && data.policy.chain))) || 'robinhood').toLowerCase();
     }
 
+    function ensureVisibleChain(data) {
+      if (!viewChain) return false;
+      const enabled = data && data.scheduler && Array.isArray(data.scheduler.enabledChains)
+        ? data.scheduler.enabledChains.map(function (value) { return String(value).toLowerCase(); }) : [];
+      if (!enabled.length || enabled.includes(viewChain)) return false;
+      const scanning = String((data.scheduler && data.scheduler.scanningChain) || '').toLowerCase();
+      const replacement = enabled.includes(scanning) ? scanning : enabled[0];
+      if (!replacement || replacement === viewChain) return false;
+      viewChain = replacement;
+      writeStorage('memeRadarViewChainV1', replacement);
+      return true;
+    }
+
     function renderChainSwitcher(data) {
       const hasStatus = Boolean(data);
       const current = activeChain(data);
@@ -2065,11 +2078,12 @@
       const available = new Set(hasStatus ? (declared.length ? declared : [current]) : []);
       const scanning = data && data.scheduler && Array.isArray(data.scheduler.enabledChains)
         ? data.scheduler.enabledChains.map(function (value) { return String(value).toLowerCase(); }) : [];
-      const visibleTabs = scanning.length > 1 ? new Set(scanning) : available;
       byId('chainSwitcher').innerHTML = chainCatalog.map(function (chain) {
         const isActive = chain.id === current;
-        const supported = available.has(chain.id) && visibleTabs.has(chain.id);
-        return '<button type="button" class="chain-button ' + (isActive ? 'active ' : '') + ((chainSwitching && isActive) || pending === chain.id ? 'switching' : '') + '" data-chain="' + chain.id + '" ' + ((!supported || chainSwitching || Boolean(pending)) ? 'disabled' : '') + '>' + escapeHtml(chainLabel(chain)) + '</button>';
+        const supported = available.has(chain.id);
+        const isScanning = scanning.includes(chain.id);
+        return '<button type="button" class="chain-button ' + (isActive ? 'active ' : '') + (isScanning ? 'scanning ' : '') + ((chainSwitching && isActive) || pending === chain.id ? 'switching' : '')
+          + '" data-chain="' + chain.id + '" aria-pressed="' + (isActive ? 'true' : 'false') + '" ' + ((!supported || chainSwitching || Boolean(pending)) ? 'disabled' : '') + '>' + escapeHtml(chainLabel(chain)) + '</button>';
       }).join('');
       const activeItem = chainCatalog.find(function (chain) { return chain.id === current; });
       const pendingItem = chainCatalog.find(function (chain) { return chain.id === pending; });
@@ -2077,33 +2091,39 @@
       const pendingLabel = pendingItem ? chainLabel(pendingItem) : pending;
       byId('chainHint').textContent = !hasStatus ? t('chainOfflineHint') : pending
         ? t('chainPendingHint', { current: activeLabel, pending: pendingLabel })
-        : scanning.length > 1 ? t('scanSelectionHelp')
-          : declared.length ? t('chainClickHint', { chain: activeLabel }) : t('chainUnavailableHint', { chain: activeLabel });
+        : declared.length ? t('chainReadyHint') : t('chainUnavailableHint', { chain: activeLabel });
     }
 
     async function switchActiveChain(chain) {
-      if (chainSwitching || !lastData || chain === activeChain(lastData)) return;
+      if (chainSwitching || !lastData) return;
+      const supported = Array.isArray(lastData.supportedChains) ? lastData.supportedChains.map(function (value) { return String(value).toLowerCase(); }) : [];
+      if (!supported.includes(chain)) return showToast(t('unsupportedChain'));
+      const enabled = lastData.scheduler && Array.isArray(lastData.scheduler.enabledChains)
+        ? lastData.scheduler.enabledChains.map(function (value) { return String(value).toLowerCase(); }).filter(function (value, index, rows) { return supported.includes(value) && rows.indexOf(value) === index; }) : [];
+      const currentView = viewChain || activeChain(lastData);
+      if (chain === currentView && enabled.includes(chain)) return;
       chainSwitching = true;
       renderChainSwitcher(lastData);
       showToast(t('switchingToast'));
       try {
-        const response = await fetch('/api/active-chain', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chain: chain })
-        });
-        let result = {};
-        try { result = await response.json(); } catch {}
-        if (!response.ok || result.accepted !== true) {
-          const errorText = result.error === 'unsupported_chain' ? t('unsupportedChain')
-            : result.error === 'chain_switch_unavailable' ? t('switchUnavailable')
-              : result.error === 'scan_in_progress' ? t('scanBusy')
-                : t('switchFailed');
-          throw new Error(errorText);
+        let notice = 'switchAccepted';
+        if (!enabled.includes(chain)) {
+          const next = enabled.slice(0, 3);
+          const fallback = activeChain(lastData);
+          if (!next.length && supported.includes(fallback) && fallback !== chain) next.push(fallback);
+          if (next.length < 3 && !next.includes(chain)) next.push(chain);
+          else {
+            const replacement = next.indexOf(currentView);
+            next[replacement >= 0 ? replacement : next.length - 1] = chain;
+            notice = 'chainReplaced';
+          }
+          await postLocal('/api/scan-chains', { chains: next });
+          selectedChainsDirty = false;
+          if (notice !== 'chainReplaced') notice = 'chainAdded';
         }
-        showToast(t('switchAccepted'));
         viewChain = chain;
         writeStorage('memeRadarViewChainV1', chain);
+        showToast(t(notice));
         await refresh();
       } catch (error) {
         showToast((currentLocale === 'zh-CN' || currentLocale === 'zh-TW') && hasChinese(error.message) ? error.message : t('switchFailed'));
@@ -2126,7 +2146,7 @@
           RATE_LIMITED: 'gmgnApiRate', ERROR: 'gmgnApiNetwork' }[data.status];
         if (key) return { title: t(key), detail: 'AVE', tone: 'warn' };
         const observed = data.aveMarket?.chains?.[activeChain(data)]?.state === 'observed';
-        return { title: t(observed ? 'providerNormal' : 'waitingState'), detail: 'AVE · ' + t('liveLimits'), tone: observed ? 'good' : 'warn' };
+        return { title: t(observed ? 'providerNormal' : 'waitingState'), detail: t(observed ? 'avePollingHealthy' : 'aveAwaitingFirstScan'), tone: observed ? 'good' : 'warn' };
       }
       const health = data.sourceHealth || {};
       const discovery = health.discovery;
@@ -2392,7 +2412,7 @@
         const links = radarLinks(row);
         const unit = function (label, value, tone) { return '<div><small>' + escapeHtml(label) + '</small><b class="mono ' + (tone || '') + '">' + escapeHtml(value) + '</b></div>'; };
         return '<article id="live-card-' + encodeURIComponent(voiceSpotlightKey(row)) + '" tabindex="-1" class="live-card' + (isNew ? ' new-sighting' : '') + (spotlight ? ' voice-highlight' : '') + '"><div class="live-card-head"><strong>' + escapeHtml(row.symbol) + '</strong>'
-          + '<span class="live-tag">' + escapeHtml(t(row.discoveryState === 'PENDING' ? 'livePending' : row.stale ? 'liveStale' : row.auditEligible ? 'liveEligible' : isNew ? 'liveNew' : 'liveUnreviewed')) + '</span></div><div class="muted">' + escapeHtml(row.name) + '</div>'
+          + '<span class="live-tag">' + escapeHtml(t(row.retainedSnapshot ? 'liveRetained' : row.discoveryState === 'PENDING' ? 'livePending' : row.stale ? 'liveStale' : row.auditEligible ? 'liveEligible' : isNew ? 'liveNew' : 'liveUnreviewed')) + '</span></div><div class="muted">' + escapeHtml(row.name) + '</div>'
           + '<div class="addr mono">' + escapeHtml(row.address.slice(0,8) + '…' + row.address.slice(-6)) + '</div>'
           + '<div class="live-numbers">' + unit(t('liveCap'), formatMoney(row.marketCap))
           + unit(t('liveLp'), Number.isFinite(row.liquidity) ? formatMoney(row.liquidity) : t('liveFetching'))
@@ -2579,6 +2599,11 @@
         if (!response.ok) throw new Error(t('localOffline'));
         const data = await response.json();
         if (requestSequence < acceptedRefresh || requestChain !== viewChain) return;
+        if (ensureVisibleChain(data)) {
+          acceptedRefresh = requestSequence;
+          await refresh();
+          return;
+        }
         acceptedRefresh = requestSequence;
         serviceOnline = true;
         offlineSince = 0;

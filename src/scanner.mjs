@@ -6,6 +6,7 @@ import { socialGate } from './social.mjs';
 import { tokenInfoPrice } from './ave.mjs';
 import { collectOutcomeSamples, selectOutcomeJobs, outcomeCoverage, sampleRejected } from './outcomes.mjs';
 import { tokenKey } from './local-store.mjs';
+import { reconcileLiveLeads } from './live-leads.mjs';
 
 const numberOrNull = value => {
   if (value === null || value === undefined || value === '' || typeof value === 'boolean') return null;
@@ -40,7 +41,7 @@ const OUTCOME_SAMPLE_GRACE_MS = 5 * 60_000;
 const REQUIRED_CALIBRATION_WINDOWS = Object.freeze(['m30', 'h2', 'h24']);
 const CHAIN_SCOPE_KEYS = Object.freeze([
   'scanCount', 'discoveredCount', 'prequalifiedCount', 'candidates', 'rejected',
-  'auditQueue', 'auditQueueStats', 'outcomes', 'outcomeSummary', 'sourceHealth',
+  'auditQueue', 'auditQueueStats', 'liveLeads', 'outcomes', 'outcomeSummary', 'sourceHealth',
   'lastAttemptAt', 'lastSuccessAt', 'lastCompleteSuccessAt', 'lastCycleMs', 'retryAt', 'status', 'generatedAt', 'nextCycleAt'
 ]);
 const RESERVED_X_PATHS = new Set([
@@ -106,7 +107,8 @@ function publicToken(row, screen, chain) {
     ...(row.marketProvider === 'AVE' ? { marketProvider: 'AVE', ageBasis: screen.ageBasis || row.ageBasis || 'unknown',
       capturedAt: row.capturedAt, sourceUpdatedAt: row.sourceUpdatedAt, expiresAt: row.expiresAt, stale: row.stale,
       pairAddress: row.pairAddress, poolCreatedAt: row.poolCreatedAt, firstTradeAt: row.firstTradeAt,
-      volume5m: numberOrNull(row.volume_5m), activityWindow: '5m', aveUrl: row.aveUrl } : {}),
+      volume5m: numberOrNull(row.volume_5m), buys5m: numberOrNull(row.buys_5m), sells5m: numberOrNull(row.sells_5m),
+      activityWindow: '5m', aveUrl: row.aveUrl } : {}),
     ageSec: screen.ageSec,
     priorityBand: screen.priorityBand,
     discoveryScore: screen.score,
@@ -350,7 +352,7 @@ function scopeSnapshot(value) {
 function emptyScope() {
   return {
     scanCount: 0, discoveredCount: 0, prequalifiedCount: 0,
-    candidates: [], rejected: [], auditQueue: [], outcomes: [],
+    candidates: [], rejected: [], auditQueue: [], liveLeads: [], outcomes: [],
     auditQueueStats: { total: 0, retained: 0, due: 0, neverAudited: 0, waitingRecheck: 0, hardReject: 0, chainReview: 0, estimatedMinutes: 0 },
     outcomeSummary: {
       minimumSample: 50, calibrationReady: false,
@@ -792,6 +794,36 @@ export class Scanner {
       const discoveryHealth = this.provider.lastDiscoveryHealth || { complete: true, checkedAt: now };
       const observationAt = this.providerName === 'AVE'
         ? Math.min(now, num(discoveryHealth.checkedAt)) : now;
+      const liveConfirmedAt = observationAt > 0 ? observationAt : now;
+      const hardRejectedAddresses = new Set([
+        ...candidates.filter(row => ['HARD_REJECT', 'REJECTED'].includes(row.status)),
+        ...auditQueue.filter(row => ['HARD_REJECT', 'REJECTED'].includes(row.status))
+      ].map(row => addressKey(row.address)));
+      const liveObservations = screened
+        .filter(item => item.row?.marketProvider === 'AVE' && item.row?.address)
+        .map(item => {
+          const address = addressKey(item.row.address);
+          const hardRejected = hardRejectedAddresses.has(address) || Boolean(riskExclusions[tokenKey(chain, item.row.address)]);
+          return {
+            address: item.row.address,
+            eligible: item.screen.pass && !hardRejected,
+            hardRejected,
+            lead: item.screen.pass ? publicToken(item.row, item.screen, chain) : null
+          };
+        });
+      // A durable risk verdict always wins, even when page rotation omitted
+      // the affected contract from this turn's hot-list response.
+      for (const lead of prior.liveLeads || []) {
+        const address = addressKey(lead?.address);
+        if (hardRejectedAddresses.has(address) || riskExclusions[tokenKey(chain, lead?.address)]) {
+          liveObservations.push({ address: lead.address, eligible: false, hardRejected: true });
+        }
+      }
+      const liveLeads = this.providerName === 'AVE' ? reconcileLiveLeads(prior.liveLeads, liveObservations, {
+        chain,
+        confirmedAt: liveConfirmedAt,
+        retentionMs: settings.liveLeadRetentionMs
+      }) : [];
       const degraded = discoveryHealth.complete === false || auditHadError;
       const pause = budgetPause || providerPause(this.provider, now);
       const next = {
@@ -818,6 +850,7 @@ export class Scanner {
         candidates,
         rejected,
         auditQueue,
+        liveLeads,
         auditQueueStats: queueStats(auditQueue, availableAddresses, now, settings),
         outcomes,
         outcomeSummary: summarizeOutcomes(outcomes),

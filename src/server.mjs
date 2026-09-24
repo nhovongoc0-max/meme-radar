@@ -7,10 +7,10 @@ import { secondaryChainSupport } from './secondary.mjs';
 import { tokenKey } from './local-store.mjs';
 import { CHART_RISK_VERSION, applyRiskExclusion } from './chart-risk.mjs';
 import { AveError } from './ave-settings.mjs';
+import { activeLiveLeads } from './live-leads.mjs';
 
 const LOOPBACK_ADDRESSES = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const CHAIN_IDS = new Set(['sol', 'bsc', 'base', 'eth', 'robinhood', 'arc', 'stable']);
-const LIVE_CANDIDATE_TTL_MS = 15 * 60_000;
 const CHECK_FIELDS = [
   'openSource', 'ownerRenounced', 'lpLocked', 'notHoneypot', 'tax', 'rug',
   'concentration', 'dev', 'insider', 'bundler', 'sniper', 'wash', 'liquidity',
@@ -145,7 +145,7 @@ function rejectedAuditKeys(scope, chain) {
     .map(row => tokenKey(chain, row.address)));
 }
 
-function recentLiveRows(rows, scope, chain, now = Date.now()) {
+function currentLiveRows(rows, scope, chain, now = Date.now()) {
   const history = new Map((scope?.auditQueue || []).filter(row => row && typeof row.address === 'string')
     .map(row => [tokenKey(chain, row.address), finiteOrNull(row.firstSeenAt)]));
   return (rows || []).flatMap(row => {
@@ -153,12 +153,29 @@ function recentLiveRows(rows, scope, chain, now = Date.now()) {
     const remembered = history.get(tokenKey(chain, row.address));
     const firstSeenAt = [remembered, finiteOrNull(row.firstSeenAt), finiteOrNull(row.newAt), finiteOrNull(row.sourceUpdatedAt)]
       .find(value => value !== null && value > 0 && value <= now);
-    if (!firstSeenAt || now - firstSeenAt > LIVE_CANDIDATE_TTL_MS) return [];
+    if (!firstSeenAt) return [];
     // The durable queue records the first time this contract actually passed
-    // the fast screen. Reappearing on another trending page must not turn it
-    // into a new card or a new voice alert.
-    return [{ ...row, firstSeenAt, newAt: firstSeenAt }];
+    // the fast screen. Reappearing on another trending page keeps that clock;
+    // repeat speech is controlled by the voice tracker, not by deleting UI
+    // cards after an arbitrary wall-clock window.
+    return [{ ...row, firstSeenAt, newAt: firstSeenAt, retainedSnapshot: false,
+      displayEligible: true, evidenceStale: false }];
   });
+}
+
+function retainedLiveRows(scope, chain, now = Date.now()) {
+  return activeLiveLeads(scope?.liveLeads, chain, now).map(row => ({
+    ...row,
+    // These are explicit display receipts from the last successful scan. The
+    // original evidence clocks remain untouched and are normally stale by the
+    // time this fallback is used. They can never trigger voice or an audit.
+    stale: true,
+    auditEligible: false,
+    discoveryState: 'RETAINED',
+    retainedSnapshot: true,
+    displayEligible: true,
+    evidenceStale: true
+  }));
 }
 
 function mergedVoiceRows(liveDiscovery, state, scope, chain) {
@@ -176,7 +193,7 @@ function liveVoiceRows(liveDiscovery, state, scope, chain) {
   let source;
   try { source = liveDiscovery.snapshot(chain); } catch { return []; }
   const snapshot = publicLiveSnapshot(source, chain);
-  return recentLiveRows(snapshot.rows, scope, chain).slice(0, 200).map(row => {
+  return currentLiveRows(snapshot.rows, scope, chain).slice(0, 200).map(row => {
     const excluded = state.riskExclusions?.[tokenKey(chain, row.address)];
     return {
       source: 'live', chain, address: text(row.address, 80),
@@ -222,7 +239,7 @@ function publicLiveSnapshot(source = {}, chain) {
     execution: false, stale: source.stale !== false,
     ...Object.fromEntries(['intervalMs', 'nextPollAt', 'lastAttemptAt', 'lastPollAt', 'lastSuccessAt', 'requestMs', 'pollCount', 'receivedCount', 'filteredCount']
       .map(key => [key, nonnegative(source[key])])),
-    diagnostics: Object.fromEntries(['received', 'inRange', 'pending', 'stale', 'ready', 'excluded', 'outsideRange']
+    diagnostics: Object.fromEntries(['received', 'inRange', 'pending', 'stale', 'ready', 'retained', 'excluded', 'outsideRange']
       .map(key => [key, nonnegative(source.diagnostics?.[key])])),
     rows: (Array.isArray(source.rows) ? source.rows : []).slice(0, 300)
       .filter(row => row && typeof row.address === 'string' && (!row.chain || row.chain === chain)
@@ -928,10 +945,15 @@ export function createServer({ state, settings, controls, switchChain, saveGmgnK
           const audit = audits.get(key(row.address));
           return { ...row, audit: audit ? { status: publicCandidate(audit).status, at: finite(audit.auditedAt) } : null };
         });
-        const freshRows = recentLiveRows(snapshot.rows, scope, body.chain);
+        const freshRows = currentLiveRows(snapshot.rows, scope, body.chain);
+        const freshKeys = new Set(freshRows.map(row => tokenKey(body.chain, row.address)));
+        const retainedRows = retainedLiveRows(scope, body.chain)
+          .filter(row => !freshKeys.has(tokenKey(body.chain, row.address)))
+          .filter(row => !state.value.riskExclusions?.[tokenKey(body.chain, row.address)] && !rejected(row));
         snapshot.diagnostics.excluded += removed + snapshot.rows.length - freshRows.length;
-        snapshot.rows = freshRows;
-        snapshot.diagnostics.ready = snapshot.rows.filter(row => row.auditEligible).length;
+        snapshot.rows = [...freshRows, ...retainedRows].slice(0, 200);
+        snapshot.diagnostics.ready = freshRows.length;
+        snapshot.diagnostics.retained = retainedRows.length;
         snapshot.diagnostics.pending = snapshot.rows.filter(row => row.discoveryState === 'PENDING').length;
         snapshot.diagnostics.stale = snapshot.rows.filter(row => row.discoveryState === 'STALE').length;
         return sendJson(res, 200, snapshot, csp);
@@ -1130,8 +1152,7 @@ export function createServer({ state, settings, controls, switchChain, saveGmgnK
       return sendJson(res, 200, output, csp);
     }
     if (url.pathname === '/health') return sendJson(res, 200, healthSnapshot(state.value, settings), csp);
-    const assets = { '/update-ui.mjs': ['update-ui.mjs', 'text/javascript; charset=utf-8'],
-      '/voice-ui.mjs': ['voice-ui.mjs', 'text/javascript; charset=utf-8'],
+    const assets = { '/voice-ui.mjs': ['voice-ui.mjs', 'text/javascript; charset=utf-8'],
       '/voice-alerts.mjs': ['voice-alerts.mjs', 'text/javascript; charset=utf-8'],
       '/voice-player.mjs': ['voice-player.mjs', 'text/javascript; charset=utf-8'] };
     if (Object.hasOwn(assets, url.pathname)) {

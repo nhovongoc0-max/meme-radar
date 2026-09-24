@@ -2,6 +2,8 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdirSync, openSync, readFileSync, writeFileSync, fsyncSync, closeSync, renameSync, unlinkSync, lstatSync, constants } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { normalizePoolAddress, normalizeTokenAddress } from './address.mjs';
+import { config } from './config.mjs';
+import { discoveryScreen } from './scoring.mjs';
 
 // AVE Data REST only. No wallet, signing, trading, arbitrary URL, or retry.
 // https://ave-cloud.gitbook.io/data-api/rest/tokens
@@ -21,6 +23,8 @@ const RATE_TARGET_GAP_MS = 5 * 60_000;
 const RATE_MAX_GAP_MS = 15 * 60_000;
 const RATE_RECOVERY_WINDOW_MS = 30 * 60_000;
 const RATE_FLOOR_RETRY_MS = 24 * 60 * 60_000;
+const ROTATION_READY_TARGET = 3;
+const ROTATION_SEEN_LIMIT = 600;
 const DOCUMENTED = new Set(['bsc', 'eth', 'base', 'sol']);
 const ORIGIN = 'https://prod.ave-api.com';
 const lanes = new WeakMap();
@@ -876,17 +880,6 @@ export class AveClient {
         for (const row of additional) { seen.add(row.token); rows.push(marketRow(row, pageResult.capturedAt, this.#now())); }
         if (!additional.length) break;
       }
-      if (this.#rotateTrendingPages) {
-        let tail = rotation.tail >= 1 && rotation.tail <= 2 ? rotation.tail : 1;
-        let nextPage = 0;
-        if (page === 0) {
-          if (rows.filter(inScope).length < 6 && Number.isInteger(result.nextPage) && result.nextPage > 0) nextPage = tail;
-        } else {
-          tail = Number.isInteger(pageResult.nextPage) && pageResult.nextPage > page && pageResult.nextPage <= 2
-            ? pageResult.nextPage : 1;
-        }
-        this.#trendingPages.set(chain, { page: nextPage, tail });
-      }
       // Retain a complete old observation as a whole, never mix old pool facts
       // with a fresh hot-list clock. Expired observations stay non-actionable.
       const previous = new Map((this.#discovery.get(chain)?.rows || []).map(row => [row.address, row]));
@@ -985,6 +978,30 @@ export class AveClient {
       enrichment.complete = !enrichment.pausedCode && enrichment.errors.length === 0 && rows
         .filter(inScope).every(discoveryFactsComplete);
       if (!pauseAfterPage && !onlyHead) this.#cursors.set(chain, pool.length ? (start + Math.max(1, walked)) % pool.length : 0);
+      if (this.#rotateTrendingPages) {
+        let tail = rotation.tail >= 1 && rotation.tail <= 2 ? rotation.tail : 1;
+        const seenReady = rotation.seenReady instanceof Set ? rotation.seenReady : new Set();
+        // Decide the next paid page from the same safety screen used by the
+        // visible AVE shortlist. Merely having many rows in the market-cap
+        // band must not pin a chain to page zero when none can be shown.
+        const ready = rows.filter(row => discoveryScreen(row, { ...config, chain }, this.#now() / 1000).pass);
+        const novelReady = ready.filter(row => !seenReady.has(row.address));
+        for (const row of ready) {
+          // Refresh insertion order so the bounded set represents recent
+          // actionable membership, not every address seen for the session.
+          seenReady.delete(row.address); seenReady.add(row.address);
+        }
+        while (seenReady.size > ROTATION_SEEN_LIMIT) seenReady.delete(seenReady.values().next().value);
+        let nextPage = 0;
+        if (page === 0) {
+          const hasTail = Number.isInteger(result.nextPage) && result.nextPage > 0;
+          if (hasTail && novelReady.length < ROTATION_READY_TARGET) nextPage = tail;
+        } else {
+          tail = Number.isInteger(pageResult.nextPage) && pageResult.nextPage > page && pageResult.nextPage <= 2
+            ? pageResult.nextPage : 1;
+        }
+        this.#trendingPages.set(chain, { page: nextPage, tail, seenReady });
+      }
       const checkedAt = Math.max(result.capturedAt, pageResult.capturedAt, ...rows.map(row => row.capturedAt || 0));
       const health = { provider: 'AVE', complete: enrichment.errors.length === 0,
         trending: { ok: !pageError, count: rows.length, cacheHit: result.cacheHit && pageResult.cacheHit, capturedAt: Math.max(result.capturedAt, pageResult.capturedAt), code: pageError?.code },

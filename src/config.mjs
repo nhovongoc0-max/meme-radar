@@ -61,6 +61,9 @@ export const config = Object.freeze({
   hardRejectRecheckMs: 6 * 60 * 60_000,
   queueRetentionMs: 24 * 60 * 60_000,
   candidateRetentionMs: 2 * 60 * 60_000,
+  // A passing lead remains visible across a complete multi-chain/page rotation.
+  // Its quote clocks are not extended; this is display retention only.
+  liveLeadRetentionMs: 30 * 60_000,
   staleCandidateMs: 10 * 60_000,
   outcomeRetentionMs: 7 * 24 * 60 * 60_000,
   stateDir: path.join(ROOT, 'state'),

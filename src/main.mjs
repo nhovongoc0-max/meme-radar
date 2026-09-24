@@ -3,7 +3,6 @@ import { config, ROOT } from './config.mjs';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AveClient } from './ave.mjs';
-import { createUpdater } from './updater.mjs';
 import { createAveSettings } from './ave-settings.mjs';
 import { RadarState } from './state.mjs';
 import { Scanner } from './scanner.mjs';
@@ -52,7 +51,6 @@ if (state.value.scanProvider !== 'AVE') {
 const controls = new RadarControls(config.stateDir, config.supportedChains, state.value.activeChain || config.chain);
 scanner = new Scanner({ provider: market, secondary: new SecondaryValidator(), state, controls });
 const liveDiscovery = new LiveDiscovery({ provider: market, cacheOnly: true, marketOverlay: new DexBatchMarketOverlay() });
-const updater = createUpdater({ root: ROOT, port: config.port });
 const version = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
 
 if (once) {
@@ -71,9 +69,7 @@ const server = createServer({
   supportedChains: config.supportedChains,
   switchChain: chain => scanner.switchChain(chain),
   getAveConnection: () => ave.snapshot(),
-  getMarketStatus: () => market.snapshot(),
-  updater,
-  onUpdateReady: () => shutdown(false)
+  getMarketStatus: () => market.snapshot()
 });
 server.requestTimeout = 10_000;
 server.headersTimeout = 12_000;
@@ -87,11 +83,10 @@ await new Promise((resolve, reject) => {
 console.log(`Meme雷达：http://127.0.0.1:${config.port}`);
 console.log('只读扫描器：交易执行永久关闭');
 let closing = false;
-function shutdown(stopUpdate = true) {
+function shutdown() {
   if (closing) return;
   closing = true; scanner.stop(); liveDiscovery.stop();
   market.resetCredentials({ disabled: true });
-  if (stopUpdate) updater.stop();
   server.close(() => process.exit(0));
   server.closeIdleConnections();
 }

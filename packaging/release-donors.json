@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "windowsX64": {
+    "version": "0.1.9",
+    "assetName": "MemeRadar-OpenSource-Windows-x64-0.1.9.zip",
+    "sha256": "c18587ba3b93db988882eeff3fe63b47f035b6d4e2f7bc14f2fd756c2e4e5aaf",
+    "requiredFiles": {
+      "MemeRadar-OpenSource.exe": "24e441903d97b62f1e1783e8c4917b46b0922d7d5329dfb6be28bec915ced0b0",
+      "runtime/node.exe": "f8d162c0641dcee512132f3bcf8a68169c7ecb852efd8e1a46c9fec5a0f469ed"
+    },
+    "launcherSource": {
+      "path": "packaging/windows-portable/launcher.cjs",
+      "sha256": "9f0151a8c67872ad180b5af971a1ad729354f437c66be7dded60aea5d4668f9c"
+    },
+    "copiedPrefixes": [
+      "node_modules/"
+    ]
+  }
+}

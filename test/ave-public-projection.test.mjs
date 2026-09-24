@@ -4,7 +4,8 @@ import { Readable } from 'node:stream';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
-import { createServer, toPublicStatus } from '../src/server.mjs';
+import { createServer, toPublicStatus, voiceSnapshot } from '../src/server.mjs';
+import { reconcileLiveLeads } from '../src/live-leads.mjs';
 
 const CA = '0x' + '1'.repeat(40), POOL = '0x' + '2'.repeat(40);
 const row = (now, extra = {}) => ({ chain: 'bsc', address: CA, marketProvider: 'AVE', symbol: 'MOCK', name: 'Mock',
@@ -119,18 +120,28 @@ test('AVE live endpoint allowlists fields, keeps quote expiry and supplies the a
   context.liveData.rows = [row(now, { discoveryState: 'READY', expiresAt: now - 1, stale: true, auditEligible: false })];
   vm.runInNewContext(draw, context);
   assert.doesNotMatch(elements.liveRows.innerHTML, /MOCK|liveStale|data-live-audit/);
-  // The fast pool is a fifteen-minute window, not a permanent watchlist.
-  // An expired card cannot be repinned without a current eligible snapshot.
+  // A sanitized receipt from the last genuinely passing scan remains visible,
+  // but its old evidence never regains audit eligibility or a fresh badge.
+  context.liveData.rows = [row(now, { retainedSnapshot: true, displayEligible: true, evidenceStale: true,
+    discoveryState: 'RETAINED', expiresAt: now - 1, stale: true, auditEligible: false,
+    firstSeenAt: now - 20 * 60_000, newAt: now - 20 * 60_000 })];
+  vm.runInNewContext(draw, context);
+  assert.match(elements.liveRows.innerHTML, /MOCK|liveRetained/);
+  assert.doesNotMatch(elements.liveRows.innerHTML, /liveEligible|data-live-audit|voice-highlight/);
+  // A contract first seen earlier remains visible while a current snapshot
+  // still passes. The old first-seen clock only prevents it looking newly seen.
   elements.liveSort.value = 'new';
   const other = '0x' + '4'.repeat(40);
   context.liveData.rows = [row(now, { symbol: 'OLD', firstSeenAt: now - 1800000, newAt: 0 }),
     row(now, { address: other, symbol: 'NEWER', firstSeenAt: now - 5000, newAt: now - 5000 })];
   vm.runInNewContext(draw, context);
-  assert.match(elements.liveRows.innerHTML, /NEWER/); assert.doesNotMatch(elements.liveRows.innerHTML, /OLD/);
+  assert.match(elements.liveRows.innerHTML, /NEWER/); assert.match(elements.liveRows.innerHTML, /OLD/);
+  assert.ok(elements.liveRows.innerHTML.indexOf('NEWER') < elements.liveRows.innerHTML.indexOf('OLD'));
   context.voiceSpotlight = { id: 1 }; context.voiceSpotlightSelected = 'bsc:' + CA;
   context.voiceSpotlightRank = r => r.address === CA ? 0 : Infinity;
   vm.runInNewContext(draw, context);
-  assert.doesNotMatch(elements.liveRows.innerHTML, /OLD|voice-highlight/);
+  assert.match(elements.liveRows.innerHTML, /OLD/);
+  assert.match(elements.liveRows.innerHTML, /voice-highlight/);
   context.voiceSpotlightSignature = 'expired'; context.voiceSpotlightRank = () => Infinity;
   vm.runInNewContext(draw, context);
   assert.doesNotMatch(elements.liveRows.innerHTML, /voice-highlight/);
@@ -157,7 +168,7 @@ test('AVE live endpoint allowlists fields, keeps quote expiry and supplies the a
   context.voiceSpotlightRank = candidate => candidate.address === instant ? 0 : Infinity;
   vm.runInNewContext(draw, context);
   assert.match(elements.liveRows.innerHTML, /INSTANT/);
-  assert.doesNotMatch(elements.liveRows.innerHTML, /OLD/);
+  assert.match(elements.liveRows.innerHTML, /OLD/);
   assert.ok(elements.liveRows.innerHTML.indexOf('INSTANT') < elements.liveRows.innerHTML.indexOf('NEWER'),
     'a just-announced candidate is pinned ahead of the remaining current cards');
 
@@ -174,6 +185,44 @@ test('AVE live endpoint allowlists fields, keeps quote expiry and supplies the a
   vm.runInNewContext(draw, context);
   assert.equal((elements.liveRows.innerHTML.match(/voice-highlight/g) || []).length, 16,
     'every token in a large spoken batch remains visible above ordinary cards');
+});
+
+test('live endpoint retains a passed display receipt without disguising it as fresh evidence or feeding speech', async () => {
+  const now = Date.now();
+  const retained = reconcileLiveLeads([], [{ address: CA, eligible: true, lead: row(now) }], {
+    chain: 'bsc', confirmedAt: now - 5 * 60_000
+  });
+  const source = { chain: 'bsc', marketProvider: 'AVE', status: 'READY', stale: true,
+    lastSuccessAt: now - 5 * 60_000, rows: [], diagnostics: { received: 100, inRange: 4, ready: 0, excluded: 96 } };
+  const state = { activeChain: 'bsc', candidates: [], auditQueue: [], liveLeads: retained,
+    chainStates: {}, riskExclusions: {} };
+  const liveDiscovery = { touch: () => source, snapshot: () => source };
+  const server = createServer({ state: { value: state },
+    settings: { port: 3791, publicDir: fileURLToPath(new URL('../public', import.meta.url)) }, liveDiscovery });
+  const response = await dispatch(server);
+  assert.equal(response.status, 200);
+  assert.equal(response.body.rows.length, 1);
+  assert.equal(response.body.diagnostics.ready, 0);
+  assert.equal(response.body.diagnostics.retained, 1);
+  assert.equal(response.body.rows[0].retainedSnapshot, true);
+  assert.equal(response.body.rows[0].displayEligible, true);
+  assert.equal(response.body.rows[0].evidenceStale, true);
+  assert.equal(response.body.rows[0].stale, true);
+  assert.equal(response.body.rows[0].auditEligible, false);
+  assert.equal(response.body.rows[0].sourceUpdatedAt, row(now).sourceUpdatedAt,
+    'display retention must preserve the original AVE evidence clock');
+  assert.equal(voiceSnapshot(state, ['bsc'], liveDiscovery).chains.bsc.length, 0,
+    'retained display receipts must never enter the speech feed');
+
+  source.stale = false;
+  source.lastSuccessAt = now - 500;
+  source.rows = [row(now)];
+  source.diagnostics.ready = 1;
+  const refreshed = await dispatch(server);
+  assert.equal(refreshed.body.rows.length, 1, 'a fresh row replaces, rather than duplicates, its receipt');
+  assert.equal(refreshed.body.rows[0].retainedSnapshot, false);
+  assert.equal(refreshed.body.rows[0].auditEligible, true);
+  assert.equal(refreshed.body.diagnostics.retained, 0);
 });
 
 test('AVE live endpoint never re-exposes a contract already hard-rejected by deep checks', async () => {

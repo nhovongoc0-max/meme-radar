@@ -8,17 +8,21 @@ import { archiveFiles, releaseAssetName, UPDATE_LIMITS } from '../src/updater.mj
 
 const defaultRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const excluded = new Set(['.git', '.runtime', 'node_modules']);
+const releaseSourceExcludedRoots = new Set(['.git', '.runtime', 'node_modules', 'runtime', 'state', 'logs']);
+const releaseSourceNoise = new Set(['.DS_Store']);
 const forbiddenEntries = new Set(['state', 'logs', '.local-data', '.env', '.npmrc']);
 const textExtensions = new Set(['', '.bat', '.command', '.css', '.html', '.js', '.json', '.md', '.mjs', '.sh', '.txt']);
 const telegramToken = /\b\d{8,12}:[A-Za-z0-9_-]{30,}\b/;
-export const requiredUpdaterFiles = Object.freeze(['src/updater.mjs', 'scripts/update-worker.mjs', 'public/update-ui.mjs']);
+export const requiredUpdaterFiles = Object.freeze(['src/updater.mjs', 'scripts/update-worker.mjs']);
 const requiredCommonFiles = Object.freeze([
-  'package.json', 'package-lock.json', 'src/main.mjs', 'scripts/supervise.mjs', 'public/index.html', ...requiredUpdaterFiles,
+  'package.json', 'package-lock.json', 'src/main.mjs', 'src/live-leads.mjs', 'scripts/supervise.mjs', 'public/index.html', ...requiredUpdaterFiles,
 ]);
 const requiredPlatformFiles = Object.freeze({
   darwin: ['安装并启动.command', 'start-radar.command'],
-  win32: ['MemeRadar-OpenSource.exe', 'OPEN-MEME-RADAR.bat', 'runtime/node.exe'],
+  win32: ['MemeRadar-OpenSource.exe', 'OPEN-MEME-RADAR.bat', 'README-FIRST.txt', 'runtime/node.exe'],
 });
+const platformExtraRoots = Object.freeze({ darwin: new Set(), win32: new Set(['runtime', 'node_modules']) });
+const safeRuntimeMetadata = new Set(['runtime/node_modules/npm/.npmrc']);
 const validVersion = value => typeof value === 'string' && /^(0|[1-9]\d{0,4})\.(0|[1-9]\d{0,4})\.(0|[1-9]\d{0,4})$/.test(value);
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
 const inside = (root, name) => path.join(root, ...name.split('/'));
@@ -69,6 +73,46 @@ function plainFile(file) {
   } catch { return null; }
 }
 
+function privateReleasePath(name, data) {
+  if (safeRuntimeMetadata.has(name) && Buffer.isBuffer(data) && data.length === 0) return false;
+  const parts = name.split('/');
+  return parts.some(part => forbiddenEntries.has(part) || ['.git', '.runtime'].includes(part)
+    || /^(?:ave-credentials\.json|gmgn-api-key|telegram-bot-token|agent-private-key|gmgn-pending-signing-key\.pem)$/i.test(part));
+}
+
+function sourceReleaseManifest(root, findings) {
+  const files = new Map();
+  let rootStat;
+  try { rootStat = fs.lstatSync(root); } catch { /* handled below */ }
+  if (!rootStat?.isDirectory() || rootStat.isSymbolicLink()) {
+    findings.push('无法生成当前发布源文件清单');
+    return files;
+  }
+  function visit(directory, relative = '') {
+    const entries = fs.readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      if (!relative && releaseSourceExcludedRoots.has(entry.name)) continue;
+      if (releaseSourceNoise.has(entry.name)) continue;
+      const next = relative ? `${relative}/${entry.name}` : entry.name;
+      const absolute = path.join(directory, entry.name);
+      if (privateReleasePath(next)) continue;
+      if (entry.isSymbolicLink()) { findings.push(`发布源不允许符号链接：${next}`); continue; }
+      if (entry.isDirectory()) { visit(absolute, next); continue; }
+      const stat = plainFile(absolute);
+      if (!entry.isFile() || !stat) { findings.push(`发布源文件不是唯一的普通文件：${next}`); continue; }
+      const data = fs.readFileSync(absolute);
+      files.set(next, { size: data.length, sha256: sha256(data) });
+    }
+  }
+  visit(root);
+  return files;
+}
+
+function allowedPlatformExtra(name, platform) {
+  if (requiredPlatformFiles[platform]?.includes(name)) return true;
+  return platformExtraRoots[platform]?.has(name.split('/')[0]) === true;
+}
+
 function readJson(file, findings, label) {
   const stat = plainFile(file);
   if (!stat || stat.size > UPDATE_LIMITS.metadata) { findings.push(`${label}缺失、不是普通文件或过大`); return null; }
@@ -98,7 +142,9 @@ export function auditSourceTree(root = defaultRoot, { secretRoot = root } = {}) 
   try { rootStat = fs.lstatSync(root); } catch { /* handled below */ }
   if (!rootStat?.isDirectory() || rootStat.isSymbolicLink()) return { version: null, findings: ['发布源目录缺失或不安全'] };
 
-  for (const file of requiredUpdaterFiles) if (!plainFile(inside(root, file))) findings.push(`发布源缺少必需更新文件：${file}`);
+  for (const file of [...requiredUpdaterFiles, 'src/live-leads.mjs']) {
+    if (!plainFile(inside(root, file))) findings.push(`发布源缺少必需生产文件：${file}`);
+  }
   const manifest = readJson(path.join(root, 'package.json'), findings, '发布源 package.json');
   const lock = readJson(path.join(root, 'package-lock.json'), findings, '发布源 package-lock.json');
   const version = validateManifest(manifest, lock, null, findings, '发布源');
@@ -142,6 +188,7 @@ export function auditReleaseArtifacts({ root = defaultRoot, artifactsDir, versio
   const findings = [];
   secretRoot = path.resolve(secretRoot);
   const secrets = localSecrets(secretRoot), privatePaths = localPrivatePaths(secretRoot);
+  const sourceFiles = sourceReleaseManifest(root, findings);
   if (!validVersion(version)) return { findings: ['无法从发布源确定有效的三段版本'] };
   if (typeof artifactsDir !== 'string' || !artifactsDir) return { findings: ['必须使用 --artifacts <目录> 指定待发布的双平台资产'] };
   artifactsDir = path.resolve(artifactsDir);
@@ -193,10 +240,25 @@ export function auditReleaseArtifacts({ root = defaultRoot, artifactsDir, versio
     const manifest = archiveJson(files, 'package.json', findings, `${item.name} package.json`);
     const lock = archiveJson(files, 'package-lock.json', findings, `${item.name} package-lock.json`);
     validateManifest(manifest, lock, version, findings, item.name);
-    for (const name of requiredUpdaterFiles) {
-      const packaged = files.find(file => file.name === name), source = inside(root, name);
-      if (!packaged || !plainFile(source)) continue;
-      if (packaged.data.length === 0 || sha256(packaged.data) !== sha256(fs.readFileSync(source))) findings.push(`${item.name}中的 ${name} 与当前发布源不一致`);
+    const packagedFiles = new Map(files.map(file => [file.name, file]));
+    for (const [name, expectedFile] of sourceFiles) {
+      const packaged = packagedFiles.get(name);
+      if (!packaged) {
+        findings.push(`${item.name}缺少当前发布源文件：${name}`);
+        continue;
+      }
+      if (packaged.data.length !== expectedFile.size || packaged.sha256 !== expectedFile.sha256) {
+        findings.push(`${item.name}中的 ${name} 与当前发布源不一致`);
+      }
+    }
+    for (const file of files) {
+      if (privateReleasePath(file.name, file.data)) {
+        findings.push(`${item.name}包含嵌套的本机配置或私密路径：${file.name}`);
+        continue;
+      }
+      if (!sourceFiles.has(file.name) && !allowedPlatformExtra(file.name, item.platform)) {
+        findings.push(`${item.name}包含当前发布源之外的未约定文件：${file.name}`);
+      }
     }
   }
   return { findings };
@@ -228,7 +290,7 @@ function cli() {
     for (const finding of result.findings) console.error(`- ${finding}`);
     process.exitCode = 1;
   } else {
-    console.log(`发布审计通过：v${result.version} 双平台包、更新器文件、版本与 SHA-256 全部一致。`);
+    console.log(`发布审计通过：v${result.version} 双平台包、发布源文件、版本与 SHA-256 全部一致。`);
   }
 }
 

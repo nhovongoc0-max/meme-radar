@@ -13,9 +13,9 @@ const lock = value => JSON.stringify({ name: 'meme-radar-open-source', version: 
   packages: { '': { name: 'meme-radar-open-source', version: value } } });
 const common = value => ({
   'package.json': pkg(value), 'package-lock.json': lock(value),
-  'src/main.mjs': '// main', 'src/updater.mjs': '// updater',
+  'src/main.mjs': '// main', 'src/live-leads.mjs': '// retained live leads', 'src/updater.mjs': '// updater',
   'scripts/supervise.mjs': '// supervise', 'scripts/update-worker.mjs': '// worker',
-  'public/index.html': '<main>radar</main>', 'public/update-ui.mjs': '// update ui',
+  'public/index.html': '<main>radar</main>',
 });
 
 function zip(input, platform) {
@@ -49,35 +49,88 @@ function fixture(t, { mac = {}, windows = {}, checksum } = {}) {
   const source = common(version); writeTree(root, source); fs.mkdirSync(artifactsDir);
   const macName = `MemeRadar-OpenSource-macOS-${version}.zip`, winName = `MemeRadar-OpenSource-Windows-x64-${version}.zip`;
   const macBytes = zip({ ...common(version), '安装并启动.command': '#!/bin/sh', 'start-radar.command': '#!/bin/sh', ...mac }, 'darwin');
-  const winBytes = zip({ ...common(version), 'MemeRadar-OpenSource.exe': 'exe', 'OPEN-MEME-RADAR.bat': '@echo off', 'runtime/node.exe': 'node', ...windows }, 'win32');
+  const winBytes = zip({ ...common(version), 'MemeRadar-OpenSource.exe': 'exe', 'OPEN-MEME-RADAR.bat': '@echo off',
+    'README-FIRST.txt': 'Windows portable build', 'runtime/node.exe': 'node', ...windows }, 'win32');
   fs.writeFileSync(path.join(artifactsDir, macName), macBytes); fs.writeFileSync(path.join(artifactsDir, winName), winBytes);
   fs.writeFileSync(path.join(artifactsDir, `SHA256SUMS-${version}.txt`), checksum ?? `${sha(macBytes)}  ${macName}\n${sha(winBytes)}  ${winName}\n`);
   return { root, artifactsDir, macName, winName };
 }
 
-test('release audit accepts only matching two-platform packages with updater files, versions and SHA256SUMS', t => {
+test('release audit accepts only matching two-platform packages with release files, versions and SHA256SUMS', t => {
   const value = fixture(t), result = auditRelease(value);
   assert.equal(result.version, version); assert.deepEqual(result.findings, []);
 });
 
-test('source audit requires every updater component and package-lock version agreement', t => {
-  const value = fixture(t); fs.rmSync(path.join(value.root, 'public/update-ui.mjs'));
+test('source audit requires every retained migration component and package-lock version agreement', t => {
+  const value = fixture(t); fs.rmSync(path.join(value.root, 'scripts/update-worker.mjs'));
   let result = auditSourceTree(value.root);
-  assert.ok(result.findings.some(row => row.includes('public/update-ui.mjs')));
-  fs.writeFileSync(path.join(value.root, 'public/update-ui.mjs'), '// update ui');
+  assert.ok(result.findings.some(row => row.includes('scripts/update-worker.mjs')));
+  fs.writeFileSync(path.join(value.root, 'scripts/update-worker.mjs'), '// worker');
   fs.writeFileSync(path.join(value.root, 'package-lock.json'), lock('0.1.7'));
   result = auditSourceTree(value.root);
   assert.ok(result.findings.some(row => row.includes('package-lock.json')));
 });
 
 test('release audit rejects missing or stale updater files inside either platform package', t => {
-  const missing = fixture(t, { mac: { 'public/update-ui.mjs': '' } });
+  const missing = fixture(t, { mac: { 'scripts/update-worker.mjs': '' } });
   let result = auditRelease(missing);
-  assert.ok(result.findings.some(row => row.includes(missing.macName) && row.includes('public/update-ui.mjs')));
+  assert.ok(result.findings.some(row => row.includes(missing.macName) && row.includes('scripts/update-worker.mjs')));
 
   const stale = fixture(t, { windows: { 'src/updater.mjs': '// stale updater' } });
   result = auditRelease(stale);
   assert.ok(result.findings.some(row => row.includes(stale.winName) && row.includes('src/updater.mjs') && row.includes('不一致')));
+});
+
+test('release audit requires every current publish-source file in both platform packages', t => {
+  const value = fixture(t);
+  writeTree(value.root, {
+    'src/new-production-module.mjs': '// newly added production source',
+    'public/new-production-ui.mjs': '// newly added production browser source',
+  });
+  const result = auditRelease(value);
+  for (const name of ['src/new-production-module.mjs', 'public/new-production-ui.mjs']) {
+    assert.equal(result.findings.filter(row => row.includes('缺少当前发布源文件') && row.includes(name)).length, 2);
+  }
+});
+
+test('release audit blocks old archives that omit live-leads or contain stale arbitrary production source', t => {
+  const missing = fixture(t, { mac: { 'src/live-leads.mjs': '' } });
+  let result = auditRelease(missing);
+  assert.ok(result.findings.some(row => row.includes(missing.macName) && row.includes('src/live-leads.mjs')));
+
+  const stale = fixture(t, { windows: { 'src/main.mjs': '// source from an older release' } });
+  result = auditRelease(stale);
+  assert.ok(result.findings.some(row => row.includes(stale.winName) && row.includes('src/main.mjs') && row.includes('不一致')));
+});
+
+test('release audit permits only explicit Windows runtime and dependency extras', t => {
+  const windows = fixture(t, { windows: {
+    'runtime/support.dll': 'runtime dependency',
+    'runtime/node_modules/npm/.npmrc': '',
+    'node_modules/example/package.json': '{"name":"example"}',
+    'node_modules/example/index.js': 'export default true;',
+  } });
+  assert.deepEqual(auditRelease(windows).findings, []);
+
+  const mac = fixture(t, { mac: { 'node_modules/example/index.js': 'export default true;' } });
+  let result = auditRelease(mac);
+  assert.ok(result.findings.some(row => row.includes(mac.macName) && row.includes('node_modules/example/index.js') && row.includes('未约定文件')));
+
+  const configuredRuntime = fixture(t, { windows: { 'runtime/node_modules/npm/.npmrc': '//registry.example/:_authToken=not-for-release' } });
+  result = auditRelease(configuredRuntime);
+  assert.ok(result.findings.some(row => row.includes(configuredRuntime.winName)
+    && row.includes('runtime/node_modules/npm/.npmrc') && row.includes('私密路径')));
+});
+
+test('release audit rejects unapproved archive files and nested private paths', t => {
+  const extra = fixture(t, { mac: { 'src/removed-legacy-module.mjs': '// no longer in current source' } });
+  let result = auditRelease(extra);
+  assert.ok(result.findings.some(row => row.includes(extra.macName) && row.includes('src/removed-legacy-module.mjs') && row.includes('未约定文件')));
+
+  const privatePath = fixture(t, { windows: { 'docs/archive/state/ave-credentials.json': '{"key":"secret"}' } });
+  result = auditRelease(privatePath);
+  assert.ok(result.findings.some(row => row.includes(privatePath.winName)
+    && row.includes('docs/archive/state/ave-credentials.json') && row.includes('私密路径')));
 });
 
 test('release audit rejects package version drift, wrong asset set and checksum mismatch', t => {
