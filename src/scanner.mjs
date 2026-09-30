@@ -187,6 +187,8 @@ export function mergeSecondaryClassification(baseClassification, secondary) {
   };
 }
 
+const SECURITY_RECHECK_MS = 30 * 60_000;
+
 function queueSort(a, b) {
   return Number(b.priorityBand) - Number(a.priorityBand)
     || num(a.firstSeenAt) - num(b.firstSeenAt)
@@ -224,6 +226,8 @@ function buildQueue(previous, prequalified, now, settings) {
     const address = addressKey(row.address);
     const old = byAddress.get(address);
     byAddress.set(address, {
+      securityPass: old?.securityPass, securityCheckedAt: num(old?.securityCheckedAt), securityReasons: old?.securityReasons || [],
+      securityNotProvided: old?.securityNotProvided || [], securityRejected: Boolean(old?.securityRejected),
       address: String(row.address),
       firstSeenAt: num(old?.firstSeenAt, now),
       lastSeenAt: now,
@@ -495,6 +499,10 @@ export class Scanner {
       execution: 'disabled', xReview: 'manual'
     };
     const riskExclusions = prior.riskExclusions || (prior.riskExclusions = {});
+    // A K-line pattern is a moment in time, not a permanent verdict.
+    for (const [key, entry] of Object.entries(riskExclusions)) {
+      if (!(startedAt - num(entry?.at) < (settings.chartRiskExclusionMs ?? 24 * 60 * 60_000))) delete riskExclusions[key];
+    }
     this.state.value.status = 'SCANNING';
     this.state.value.scanInProgress = true;
     this.state.value.cycleStartedAt = startedAt;
@@ -560,7 +568,46 @@ export class Scanner {
       let auditQueue = buildQueue(prior.auditQueue, auditable, startedAt, settings);
       const availableAddresses = new Set(auditable.map(item => addressKey(item.row.address)));
       const queueByAddress = new Map(auditQueue.map(item => [addressKey(item.address), item]));
-      const selected = selectAuditQueue(auditQueue, availableAddresses, startedAt, num(prior.scanCount) + 1, settings.maxDeepAuditsPerCycle);
+      let events = prior.events || [];
+      // Security stage: GoPlus is free and cached, so every lead gets a contract
+      // and holder check before any paid AVE K-line read. It also gates voice.
+      const securityGate = this.providerName === 'AVE' && Boolean(this.secondary);
+      let securityDowngrades = new Map();
+      if (securityGate) {
+        securityDowngrades = new Map();
+        const securityChecks = ['openSource', 'ownerRenounced', 'lpLocked', 'notHoneypot', 'tax', 'concentration', 'dev', 'contractFlags'];
+        const pending = auditQueue.filter(item => !item.watched && availableAddresses.has(addressKey(item.address))
+          && !(item.status === 'HARD_REJECT' && num(item.nextAuditAt) > startedAt)
+          && startedAt - num(item.securityCheckedAt) >= SECURITY_RECHECK_MS)
+          .sort((a, b) => num(a.securityCheckedAt) - num(b.securityCheckedAt) || queueSort(a, b))
+          .slice(0, settings.maxSecurityChecksPerCycle ?? 10);
+        for (const queueItem of pending) {
+          if (controller.signal.aborted || this.provider.keyEpoch !== keyEpoch) return;
+          const item = auditable.find(entry => addressKey(entry.row.address) === addressKey(queueItem.address));
+          let secondary;
+          try { secondary = await this.secondary.validate({ chain, tokenAddress: queueItem.address }); } catch { continue; }
+          // No GoPlus answer is not a verdict: keep prior state and retry next cycle.
+          if (secondary.sources?.goPlus?.status !== 'OK') { queueItem.securityReasons = ['GoPlus暂无数据或请求失败，下轮重试']; continue; }
+          const pre = deepScreen({ discovery: item.row, audit: { _meta: { provider: 'AVE' } }, secondary: secondary.security, nowMs: Date.now() }, settings);
+          const hard = classifyDeepResult(pre).hardFailed.filter(name => securityChecks.includes(name));
+          const fatal = secondary.security?.verdict === 'FATAL';
+          const pass = !fatal && !hard.length && secondary.sources?.goPlus?.status === 'OK' && secondary.security?.complete === true
+            && securityChecks.every(name => pre.checks[name] !== false);
+          const reasons = [...(secondary.security?.fatal || []).map(entry => entry.reason), ...hard];
+          Object.assign(queueItem, { securityPass: pass, securityCheckedAt: num(secondary.security?.checkedAt) || Date.now(), securityReasons: reasons.slice(0, 12),
+            securityNotProvided: pre.notProvided });
+          if (fatal || hard.length) {
+            Object.assign(queueItem, { status: 'HARD_REJECT', securityRejected: true, nextAuditAt: Date.now() + settings.hardRejectRecheckMs });
+            events = addEvent(events, 'HARD_REJECT', `${item.row.symbol || queueItem.address.slice(0, 6)}：合约/持仓安全检查未通过（${reasons.join('、')}）`, chain, { address: queueItem.address });
+          }
+          if (!pass) securityDowngrades.set(addressKey(queueItem.address), { hard: fatal || hard.length > 0, reasons });
+          else if (queueItem.securityRejected) {
+            Object.assign(queueItem, { status: 'QUEUED', securityRejected: false, nextAuditAt: 0 });
+          }
+        }
+      }
+      const selected = selectAuditQueue(securityGate ? auditQueue.filter(item => item.watched || item.securityPass === true) : auditQueue,
+        availableAddresses, startedAt, num(prior.scanCount) + 1, settings.maxDeepAuditsPerCycle);
       const requested = reviewRequests.map(item => queueByAddress.get(addressKey(item.row.address))).find(item => item
         && availableAddresses.has(addressKey(item.address)) && !(item.status === 'HARD_REJECT' && item.nextAuditAt > startedAt));
       if (requested) {
@@ -580,6 +627,14 @@ export class Scanner {
             deep: { ...previous.deep, chainPass: false }, decisionReason: screen.reasons.join('；') });
         }
       }
+      // A later failed contract check must also pull an older approval.
+      for (const [key, { hard, reasons }] of securityDowngrades) {
+        const previous = candidatesByAddress.get(key);
+        if (previous?.status !== 'X_REVIEW') continue;
+        candidatesByAddress.set(key, { ...previous, status: hard ? 'HARD_REJECT' : 'WAIT_RECHECK',
+          deep: { ...previous.deep, chainPass: false }, decisionReason: `合约/持仓安全检查未通过：${reasons.join('、') || '证据不完整'}` });
+        events = addEvent(events, 'RISK_WORSENED', `${previous.symbol || previous.address.slice(0, 6)}：风险或证据状态恶化，请重新复核`, chain, { address: previous.address });
+      }
       let outcomes = updateOutcomeTracking(
         prior.outcomes,
         discoveredByAddress,
@@ -587,7 +642,6 @@ export class Scanner {
         settings.outcomeRetentionMs,
         Math.max(OUTCOME_SAMPLE_GRACE_MS, num(settings.scanIntervalMs) * 2)
       );
-      let events = prior.events || [];
       let lastAuditHealth = prior.sourceHealth?.lastAudit || null;
       let lastSecondaryHealth = prior.sourceHealth?.lastSecondary || null;
       let auditHadError = false;
@@ -606,6 +660,8 @@ export class Scanner {
         try {
           const audit = await this.provider.audit(token.address, Math.floor(Date.now() / 1000), chain, {
             signal: controller.signal,
+            // Discovery already carries the market row; only K-lines are fetched.
+            marketRow: securityGate && !item.row._monitorOnly ? item.row : undefined,
             shouldStopEarly: partial => classifyDeepResult(deepScreen({ discovery: item.row, audit: partial }, settings), partial._meta).status === 'HARD_REJECT'
           });
           if (this.provider.keyEpoch !== keyEpoch) return;
@@ -627,19 +683,9 @@ export class Scanner {
             if (freshPrice && supply > 0) token.marketCap = visibleToken.marketCap = freshPrice * supply;
             token.liquidity = visibleToken.liquidity = num(audit.info?.liquidity, token.liquidity);
           }
-          const deep = deepScreen({ discovery: item.row, audit }, settings);
-          if (deep.chartRisk.status === 'REJECT') {
-            riskExclusions[tokenKey(chain, token.address)] = { chain, address: token.address,
-              at: Date.now(), version: CHART_RISK_VERSION, codes: deep.chartRisk.codes,
-              reasons: deep.chartRisk.reasons, from: deep.chartRisk.from, to: deep.chartRisk.to };
-            // Persist immediately so a later source failure cannot erase the evidence.
-            this.state.value.riskExclusions = riskExclusions;
-            this.state.save();
-          }
-          const baseClassification = classifyDeepResult(deep, audit._meta || {});
           const primaryWebsite = String(first(audit.info?.link?.website, item.row.website, item.row.link?.website) || '');
           let secondary = null;
-          if (this.secondary && baseClassification.status !== 'HARD_REJECT') {
+          if (this.secondary) {
             try {
               secondary = await this.secondary.validate({
                 chain,
@@ -651,11 +697,8 @@ export class Scanner {
                     liquidityUsd: token.liquidity,
                     website: primaryWebsite
                   },
-                  security: {
-                    isHoneypot: deep.security?.honeypot,
-                    openSource: deep.security?.openSource,
-                    mintable: typeof deep.security?.renouncedMint === 'boolean' ? !deep.security.renouncedMint : undefined
-                  }
+                  // Security facts are merged into the deep audit, not cross-checked against themselves.
+                  security: {}
                 }
               });
             } catch {
@@ -668,6 +711,16 @@ export class Scanner {
               };
             }
           }
+          const deep = deepScreen({ discovery: item.row, audit, secondary: secondary?.security }, settings);
+          if (deep.chartRisk.status === 'REJECT') {
+            riskExclusions[tokenKey(chain, token.address)] = { chain, address: token.address,
+              at: Date.now(), version: CHART_RISK_VERSION, codes: deep.chartRisk.codes,
+              reasons: deep.chartRisk.reasons, from: deep.chartRisk.from, to: deep.chartRisk.to };
+            // Persist immediately so a later source failure cannot erase the evidence.
+            this.state.value.riskExclusions = riskExclusions;
+            this.state.save();
+          }
+          const baseClassification = classifyDeepResult(deep, audit._meta || {});
           const classification = mergeSecondaryClassification(baseClassification, secondary);
           if (item.row._monitorOnly && classification.status === 'X_REVIEW') {
             classification.status = 'WAIT_RECHECK';

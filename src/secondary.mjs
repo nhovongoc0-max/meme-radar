@@ -6,7 +6,9 @@ const DEX_CHAIN_IDS = Object.freeze({ sol: 'solana', bsc: 'bsc', base: 'base', e
 // Robinhood Chain currently has no verified DexScreener chain id here; a
 // speculative request only wastes time and makes the UI overstate coverage.
 const DEX_BATCH_CHAIN_IDS = DEX_CHAIN_IDS;
-const GOPLUS_EVM_CHAIN_IDS = Object.freeze({ eth: '1', bsc: '56', base: '8453' });
+const GOPLUS_EVM_CHAIN_IDS = Object.freeze({ eth: '1', bsc: '56', base: '8453', robinhood: '4663' });
+const BURN_ADDRESSES = new Set(['0x0000000000000000000000000000000000000000', '0x000000000000000000000000000000000000dead',
+  '0xdead000000000000000042069420694206942069']);
 
 const NUMBER_PATTERN = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
 const DEFAULT_MAX_BYTES = 1_000_000;
@@ -359,14 +361,19 @@ const EVM_SECURITY_RULES = Object.freeze([
   ['mintable', 'is_mintable', true, true, '合约仍可增发'],
   ['ownerChangeBalance', 'owner_change_balance', true, true, '所有者可修改余额'],
   ['hiddenOwner', 'hidden_owner', true, true, '存在隐藏所有者'],
-  ['cannotSellAll', 'cannot_sell_all', true, true, '持有人无法全部卖出'],
+  ['cannotSellAll', 'cannot_sell_all', true, false, '持有人无法全部卖出'],
+  ['cannotBuy', 'cannot_buy', true, false, '合约禁止买入'],
+  ['takeBackOwnership', 'can_take_back_ownership', true, false, '所有权可被收回'],
   ['selfDestruct', 'selfdestruct', true, false, '合约可自毁'],
   ['externalCall', 'external_call', true, false, '合约包含高风险外部调用'],
   ['slippageModifiable', 'slippage_modifiable', true, false, '滑点或税率可修改'],
   ['personalSlippageModifiable', 'personal_slippage_modifiable', true, false, '可按地址修改滑点或税率'],
   ['transferPausable', 'transfer_pausable', true, false, '代币转账可暂停'],
   ['blacklisted', 'is_blacklisted', true, false, '合约包含黑名单机制'],
-  ['tradingCooldown', 'trading_cooldown', true, false, '合约包含交易冷却限制']
+  ['tradingCooldown', 'trading_cooldown', true, false, '合约包含交易冷却限制'],
+  // An upgradeable proxy can swap in honeypot logic at any time.
+  ['proxy', 'is_proxy', true, false, '可升级代理合约'],
+  ['antiWhaleModifiable', 'anti_whale_modifiable', true, false, '限额可被修改']
 ]);
 
 const SOL_SECURITY_RULES = Object.freeze([
@@ -412,11 +419,13 @@ function parseGoPlus(payload, { chain, tokenAddress }) {
   const fields = {};
   const fatal = [];
   const unknownFields = [];
-  for (const [field, rawField, fatalWhen, , reason] of rules) {
+  let requiredUnknown = 0;
+  for (const [field, rawField, fatalWhen, required, reason] of rules) {
     const value = nestedBoolean(record[rawField]);
     fields[field] = value;
     if (value === null) {
       unknownFields.push(field);
+      if (required) requiredUnknown++;
     } else if (value === fatalWhen) {
       fatal.push({ field, reason });
     }
@@ -425,13 +434,15 @@ function parseGoPlus(payload, { chain, tokenAddress }) {
   const sellTax = chain === 'sol' ? null : optionalRate(record.sell_tax);
   if (chain !== 'sol' && buyTax === null) {
     unknownFields.push('buyTax');
+    requiredUnknown++;
   }
   if (chain !== 'sol' && sellTax === null) {
     unknownFields.push('sellTax');
+    requiredUnknown++;
   }
-  // An omitted risk flag is not evidence of safety. Keep the source incomplete
-  // so callers can recheck instead of treating an unknown field as a clean bill.
-  const complete = unknownFields.length === 0;
+  // An omitted required risk flag is not evidence of safety. Keep the source
+  // incomplete so callers recheck instead of treating unknown as a clean bill.
+  const complete = requiredUnknown === 0;
   return {
     found: true,
     security: {
@@ -441,8 +452,52 @@ function parseGoPlus(payload, { chain, tokenAddress }) {
       unknownFields,
       fields,
       buyTax,
-      sellTax
+      sellTax,
+      facts: goPlusFacts(record, chain, fields, buyTax, sellTax)
     }
+  };
+}
+
+const sumPercent = rows => rows.reduce((total, row) => total + (optionalRate(row?.percent) ?? 0), 0);
+
+// Deep-audit evidence in the field names scoring.securityView already reads.
+// Anything GoPlus does not return stays null so the audit can say so honestly.
+function goPlusFacts(record, chain, fields, buyTax, sellTax) {
+  // SOL holders carry `account`; SOL dex rows name the pool `id`.
+  const holderAddress = row => normalizedAddress(row?.address ?? row?.account, chain);
+  const dexAddresses = new Set((Array.isArray(record.dex) ? record.dex : [])
+    .flatMap(row => [row?.pair, row?.pool_manager, row?.id]).map(value => normalizedAddress(value, chain)).filter(Boolean));
+  const excluded = row => BURN_ADDRESSES.has(holderAddress(row))
+    || dexAddresses.has(holderAddress(row)) || optionalBoolean(row?.is_locked) === true;
+  // ponytail: GoPlus returns only the top 10 holders; after removing pool/burn/
+  // locked rows this undercounts top10. Use a holders endpoint if it matters.
+  const top10 = Array.isArray(record.holders) && record.holders.length
+    ? Math.min(1, sumPercent(record.holders.filter(row => !excluded(row)).slice(0, 10))) : null;
+  if (chain === 'sol') {
+    const fee = record.transfer_fee;
+    const noFee = fee && typeof fee === 'object' && !Array.isArray(fee) && !Object.keys(fee).length ? 0 : null;
+    return {
+      renounced_mint: fields.mintable === null ? null : !fields.mintable,
+      renounced_freeze_account: fields.freezable === null ? null : !fields.freezable,
+      buy_tax: noFee, sell_tax: noFee, top_10_holder_rate: top10
+    };
+  }
+  const lpHolders = Array.isArray(record.lp_holders) && record.lp_holders.length ? record.lp_holders : null;
+  const lockRate = lpHolders ? Math.min(1, sumPercent(lpHolders.filter(row => optionalBoolean(row?.is_locked) === true
+    || BURN_ADDRESSES.has(normalizedAddress(row?.address, chain))))) : null;
+  const creator = optionalRate(record.creator_percent), owner = optionalRate(record.owner_percent);
+  const devHold = creator === null && owner === null ? null : Math.max(creator ?? 0, owner ?? 0);
+  // "Renounced" here means the owner cannot hurt holders: either no live owner,
+  // or GoPlus reports every owner power as absent.
+  const ownerAddress = typeof record.owner_address === 'string' ? normalizedAddress(record.owner_address, chain) : null;
+  const powers = ['mintable', 'ownerChangeBalance', 'hiddenOwner', 'takeBackOwnership', 'slippageModifiable',
+    'personalSlippageModifiable', 'transferPausable', 'blacklisted'].map(name => fields[name]);
+  const ownerRenounced = fields.hiddenOwner === true || fields.takeBackOwnership === true || powers.some(value => value === true) ? false
+    : ownerAddress !== null && (!ownerAddress || BURN_ADDRESSES.has(ownerAddress)) ? true
+      : powers.every(value => value === false) ? true : null;
+  return {
+    is_open_source: fields.openSource, owner_renounced: ownerRenounced, is_honeypot: fields.isHoneypot,
+    buy_tax: buyTax, sell_tax: sellTax, top_10_holder_rate: top10, dev_team_hold_rate: devHold, lock_percent: lockRate
   };
 }
 
@@ -521,8 +576,11 @@ export class SecondaryValidator {
     timeoutMs = 8_000,
     maxResponseBytes = DEFAULT_MAX_BYTES,
     now = () => Date.now(),
-    conflictThresholds = { price: 0.10, marketCap: 0.20, liquidity: 0.25 }
+    conflictThresholds = { price: 0.10, marketCap: 0.20, liquidity: 0.25 },
+    goPlusCacheMs = 30 * 60_000
   } = {}) {
+    this.goPlusCache = new Map();
+    this.goPlusCacheMs = Math.max(0, Number(goPlusCacheMs) || 0);
     if (typeof fetchImpl !== 'function') throw new TypeError('fetch implementation is required');
     this.fetchImpl = fetchImpl;
     this.timeoutMs = Math.max(1, Number(timeoutMs) || 8_000);
@@ -574,8 +632,10 @@ export class SecondaryValidator {
       security = goPlusResult.security;
     }
     const conflicts = buildConflicts(primary, market, security, this.conflictThresholds);
-    const complete = sources.dexScreener.status === 'OK' && sources.goPlus.status === 'OK'
-      && market.complete && security.complete;
+    // A source the chain has no coverage for cannot block completeness forever
+    // (robinhood has GoPlus but no DexScreener); an erroring source still does.
+    const complete = goPlusSupported && sources.goPlus.status === 'OK' && security.complete
+      && (!dexSupported || (sources.dexScreener.status === 'OK' && market.complete));
     return {
       status: complete ? 'COMPLETE' : 'DEGRADED', complete, checkedAt: this.now(),
       chain: normalizedChain, tokenAddress: address, sources, market, security, conflicts
@@ -593,10 +653,21 @@ export class SecondaryValidator {
   }
 
   async fetchGoPlus(url, context) {
+    // Contract permissions change slowly and GoPlus is rate-limited per IP, so
+    // a found result is reused for the security stage and the later audit.
+    const key = `${context.chain}:${normalizedAddress(context.tokenAddress, context.chain)}`;
+    const cached = this.goPlusCache.get(key);
+    if (cached && this.now() - cached.at < this.goPlusCacheMs) return cached.result;
     try {
       const payload = await requestJson(this.fetchImpl, url, this);
       const parsed = parseGoPlus(payload, context);
-      return { source: sourceState(parsed.found ? 'OK' : 'NO_DATA'), security: parsed.security };
+      // checkedAt is the fetch time, so a cache hit does not look fresher than it is.
+      const result = { source: sourceState(parsed.found ? 'OK' : 'NO_DATA'), security: { ...parsed.security, checkedAt: this.now() } };
+      if (parsed.found) {
+        this.goPlusCache.set(key, { at: this.now(), result });
+        if (this.goPlusCache.size > 2_000) this.goPlusCache.delete(this.goPlusCache.keys().next().value);
+      }
+      return result;
     } catch (error) {
       return {
         source: sourceState('ERROR', { errorCode: errorCode(error) }),

@@ -99,6 +99,11 @@ test('production voice snapshot feeds the unified pool from fresh live rows with
   const state = { activeChain: 'bsc', candidates: [audit], chainStates: {}, riskExclusions: {},
     auditQueue: [{ address, status: 'QUEUED', firstSeenAt: at - 3000 }] };
   let result = voiceSnapshot(state, ['bsc'], live).chains.bsc;
+  assert.equal(result[0].qualified, false, 'a live row without a GoPlus contract pass never speaks');
+  state.auditQueue[0] = { ...state.auditQueue[0], securityPass: true, securityCheckedAt: at - 3600001 };
+  assert.equal(voiceSnapshot(state, ['bsc'], live).chains.bsc[0].qualified, false, 'expired contract check');
+  state.auditQueue[0].securityCheckedAt = at - 5000;
+  result = voiceSnapshot(state, ['bsc'], live).chains.bsc;
   assert.equal(result.length, 1); assert.equal(result[0].source, 'live');
   assert.equal(result[0].status, 'LIVE_READY'); assert.equal(result[0].qualified, true);
   assert.equal(result[0].auditedAt, at - 3000); assert.equal(result[0].staleAt, at + 30000);

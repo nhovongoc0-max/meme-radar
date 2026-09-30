@@ -370,10 +370,12 @@ function auditMeta(partial, requested, now) {
   const marketComplete = ['info', 'pool', 'candles'].every(name => endpoints[name]?.ok === true && endpoints[name]?.state === 'ok') &&
     Number.isFinite(partial.info.market_cap) && Number.isFinite(partial.pool.liquidity) && partial.candles.length > 0;
   const candleAt = endpoints.candles?.sourceUpdatedAt;
-  partial._meta = { ...partial._meta, complete: false, evidenceComplete: false,
+  // Contract/holder evidence comes from GoPlus in the scanner; AVE owns market
+  // and K-line completeness only.
+  partial._meta = { ...partial._meta, complete: marketComplete, evidenceComplete: marketComplete,
     transportComplete, marketComplete,
     marketFresh: marketComplete && partial.info.stale === false && Number.isFinite(candleAt) && candleAt <= now && now - candleAt <= 90000,
-    missingEvidence: ['security', 'holders', 'traders'], requestedEndpoints,
+    missingEvidence: ['traders'], requestedEndpoints,
     capturedAt: partial.info.capturedAt ?? endpoints.candles?.capturedAt ?? null,
     auditedAt: null };
   return partial;
@@ -1050,16 +1052,29 @@ export class AveClient {
     const rows = await this.discover(chain, options);
     return { tokens: rows, capturedAt: this.lastDiscoveryHealth?.checkedAt ?? null, interval: null, coverage: 'trending_sample' };
   }
-  async audit(ca, nowSec = Math.floor(this.#now() / 1000), chain = 'robinhood', { shouldStopEarly, signal } = {}) {
+  async audit(ca, nowSec = Math.floor(this.#now() / 1000), chain = 'robinhood', { shouldStopEarly, signal, marketRow: discoveryRow } = {}) {
     input(chain, ca); this.#credential(); const epoch = this.keyEpoch;
     const requested = new Set(['info']);
     const unknown = () => ({ ok: false, state: 'unverified', code: 'AVE_FIELD_UNVERIFIED', message: 'AVE 已核实只读接口未提供该审核证据' });
     const endpoints = { info: unknown(), security: unknown(), pool: unknown(), holders: unknown(), traders: unknown(), candles: unknown() };
     let details = null, firstError = null;
-    try { details = await this.details(chain, ca, { signal }); endpoints.info = { ok: true, state: 'ok', capturedAt: details.capturedAt, sourceUpdatedAt: details.token.sourceUpdatedAt }; }
-    catch (error) { firstError = error; endpoints.info = { ok: false, state: 'error', code: error.code, message: error.message }; }
-    const partial = { info: details ? { ...marketRow(details.token, details.capturedAt, this.#now()), pairs: clone(details.pairs) } : {}, security: {}, pool: {}, pairs: details?.pairs || [], holders: [], traders: [], candles: [],
-      _meta: { provider: 'AVE', complete: false, marketComplete: false, endpoints, capturedAt: details?.capturedAt ?? null, auditedAt: null } };
+    // A fresh discovery row already holds this cycle's details and pool market;
+    // re-reading them would spend two more 8-minute rate-lane slots.
+    const reuse = discoveryRow && discoveryRow.stale === false && address(chain, discoveryRow.address) === address(chain, ca) ? discoveryRow : null;
+    if (reuse) endpoints.info = { ok: true, state: 'ok', source: 'discovery', capturedAt: reuse.capturedAt, sourceUpdatedAt: reuse.sourceUpdatedAt };
+    else {
+      try { details = await this.details(chain, ca, { signal }); endpoints.info = { ok: true, state: 'ok', capturedAt: details.capturedAt, sourceUpdatedAt: details.token.sourceUpdatedAt }; }
+      catch (error) { firstError = error; endpoints.info = { ok: false, state: 'error', code: error.code, message: error.message }; }
+    }
+    const partial = { info: reuse ? { ...clone(reuse), stale: !(this.#now() < reuse.expiresAt) } : details ? { ...marketRow(details.token, details.capturedAt, this.#now()), pairs: clone(details.pairs) } : {}, security: {}, pool: {}, pairs: details?.pairs || [], holders: [], traders: [], candles: [],
+      _meta: { provider: 'AVE', complete: false, marketComplete: false, endpoints, capturedAt: reuse?.capturedAt ?? details?.capturedAt ?? null, auditedAt: null } };
+    // Complete hot-list rows skip pair enrichment, so pairAddress is often
+    // absent; the row's own liquidity is still this cycle's pool evidence.
+    if (reuse && Number.isFinite(reuse.liquidity)) {
+      requested.add('pool');
+      partial.pool = { liquidity: reuse.liquidity, pairAddress: reuse.pairAddress ?? null, capturedAt: reuse.capturedAt, sourceUpdatedAt: reuse.sourceUpdatedAt };
+      endpoints.pool = { ok: true, state: 'ok', source: 'discovery', capturedAt: reuse.capturedAt, sourceUpdatedAt: reuse.sourceUpdatedAt };
+    }
     if (signal?.aborted) throw fail('ABORTED', 499);
     if (epoch !== this.keyEpoch) throw fail('CHANGED', 409);
     if (firstError && ['AVE_AUTH', 'AVE_QUOTA', 'AVE_BUDGET', 'AVE_HOURLY_BUDGET', 'AVE_TOTAL_BUDGET', 'AVE_DISCOVERY_RESERVE', 'AVE_RATE_LIMITED', 'AVE_CHANGED', 'AVE_ABORTED', 'AVE_DISABLED', 'AVE_BUDGET_STORE'].includes(firstError.code)) throw firstError;
@@ -1095,7 +1110,7 @@ export class AveClient {
     let klines;
     requested.add('candles');
     try { klines = await this.tokenKlines(chain, ca, { signal }); endpoints.candles = { ok: true, state: 'ok', capturedAt: klines.capturedAt, sourceUpdatedAt: klines.sourceUpdatedAt }; }
-    catch (error) { if (!details) throw firstError || error; if (['AVE_DISCOVERY_RESERVE', 'AVE_HOURLY_BUDGET', 'AVE_TOTAL_BUDGET'].includes(error.code)) throw error; endpoints.candles = { ok: false, state: 'error', code: error.code, message: error.message }; }
+    catch (error) { if (!details && !reuse) throw firstError || error; if (['AVE_DISCOVERY_RESERVE', 'AVE_HOURLY_BUDGET', 'AVE_TOTAL_BUDGET'].includes(error.code)) throw error; endpoints.candles = { ok: false, state: 'error', code: error.code, message: error.message }; }
     if (signal?.aborted) throw fail('ABORTED', 499);
     if (epoch !== this.keyEpoch) throw fail('CHANGED', 409);
     partial.candles = klines?.list || [];

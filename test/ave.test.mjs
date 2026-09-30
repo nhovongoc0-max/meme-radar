@@ -257,9 +257,10 @@ test('invalid/conflicting candles and foreign identity fail schema, never get si
 test('audit preserves market fields and candles but does not extend a quote through the slow lane', async () => {
   const f = fixture(), result = await f.client.audit(CA, AT / 1000, 'bsc');
   assert.equal(result.info.price, 0.126); assert.equal(tokenInfoPrice(result.info, f.now()), null); assert.equal(result.candles.length, 7);
-  assert.equal(result._meta.complete, false); assert.equal(result._meta.marketComplete, true); assert.equal(result._meta.auditedAt, null);
-  assert.equal(result._meta.transportComplete, true); assert.equal(result._meta.evidenceComplete, false); assert.equal(result._meta.marketFresh, false);
-  assert.deepEqual(result._meta.missingEvidence, ['security', 'holders', 'traders']);
+  // Contract/holder evidence comes from GoPlus in the scanner, so AVE market + candles complete the AVE part.
+  assert.equal(result._meta.complete, true); assert.equal(result._meta.marketComplete, true); assert.equal(result._meta.auditedAt, null);
+  assert.equal(result._meta.transportComplete, true); assert.equal(result._meta.evidenceComplete, true); assert.equal(result._meta.marketFresh, false);
+  assert.deepEqual(result._meta.missingEvidence, ['traders']);
   assert.deepEqual(result.security, {}); assert.equal(result.pool.liquidity, 12000); assert.deepEqual(result.holders, []); assert.deepEqual(result.traders, []);
   for (const field of ['security', 'holders', 'traders']) assert.equal(result._meta.endpoints[field].ok, false);
   assert.equal(f.client.snapshot().budget.used, 20);
@@ -495,4 +496,15 @@ test('healthy but stale market data does not set audit clock or return a fresh p
   const fresh = fixture(); const freshResult = await fresh.client.audit(CA, AT / 1000, 'bsc'), info = freshResult.info;
   assert.equal(info.price, 0.126); assert.equal(freshResult._meta.marketFresh, false);
   assert.equal(tokenInfoPrice(info, fresh.now()), null); assert.equal(tokenInfoPrice(info, info.expiresAt), null);
+});
+
+test('audit reuses a fresh discovery row without pairAddress and still reaches market completeness', async () => {
+  const f = fixture();
+  const marketRow = { address: CA, stale: false, liquidity: 12000, market_cap: 50000, capturedAt: f.now(),
+    sourceUpdatedAt: f.now(), expiresAt: f.now() + 60_000 };
+  const result = await f.client.audit(CA, AT / 1000, 'bsc', { marketRow });
+  assert.equal(result._meta.endpoints.pool.source, 'discovery');
+  assert.equal(result.pool.pairAddress, null);
+  assert.equal(result._meta.marketComplete, true);
+  assert.equal(result._meta.complete, true);
 });

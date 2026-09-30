@@ -284,3 +284,21 @@ test('deep screen hard-fails unrenounced ownership and unlocked LP', () => {
   assert.ok(result.failed.includes('lpLocked'));
   assert.ok(result.failed.includes('wash'));
 });
+
+test('AVE audit with GoPlus facts can pass; source gaps are notProvided, GoPlus fatal flags block', () => {
+  const audit = { _meta: { provider: 'AVE' }, info: { liquidity: 10_000, price: { sells_5m: 3, sells_24h: 20 } },
+    security: {}, pool: { liquidity: 10_000 }, holders: [], traders: [], candles: candles() };
+  const secondary = { fatal: [], facts: { is_open_source: true, owner_renounced: true, is_honeypot: false,
+    buy_tax: 0, sell_tax: 0, top_10_holder_rate: .2, dev_team_hold_rate: .01, lock_percent: null } };
+  const result = deepScreen({ discovery: { address, liquidity: 10_000 }, audit, secondary, nowMs: nowSec * 1000 }, config);
+  assert.deepEqual(result.failed, []);
+  assert.equal(result.chainPass, true);
+  assert.deepEqual(result.notProvided.sort(), ['bundler', 'insider', 'lpLocked', 'rug', 'sniper', 'wallets', 'wash']);
+  assert.deepEqual(result.blockingUnknownFields, []);
+  const flagged = deepScreen({ discovery: { address, liquidity: 10_000 }, audit,
+    secondary: { ...secondary, fatal: ['可增发'] }, nowMs: nowSec * 1000 }, config);
+  assert.equal(flagged.chainPass, false); assert.ok(flagged.failed.includes('contractFlags'));
+  const honeypot = deepScreen({ discovery: { address, liquidity: 10_000 }, audit,
+    secondary: { ...secondary, facts: { ...secondary.facts, is_honeypot: true } }, nowMs: nowSec * 1000 }, config);
+  assert.ok(honeypot.failed.includes('notHoneypot'));
+});
