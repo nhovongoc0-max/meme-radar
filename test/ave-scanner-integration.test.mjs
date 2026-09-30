@@ -364,3 +364,25 @@ test('GoPlus security stage gates AVE reads: fatal contract is rejected without 
   assert.equal(good.item.securityPass, true); assert.ok(good.item.securityCheckedAt > 0);
   assert.equal(good.audits, 1, 'only a GoPlus-passed token spends an AVE read');
 });
+
+test('GoPlus failure keeps a hard reject and retries; a later failed check pulls an X_REVIEW approval', async () => {
+  const state = memoryState();
+  state.value.auditQueue = [{ address: CA, status: 'HARD_REJECT', securityRejected: true, securityPass: false,
+    securityCheckedAt: 1, nextAuditAt: 1, firstSeenAt: 1 }];
+  const provider = { keyEpoch: 0, configured: async () => true, discover: async () => [row(Date.now())],
+    audit: async () => marketAudit(Date.now()), metrics: {}, lastDiscoveryHealth: { complete: true } };
+  const down = { validate: async () => ({ sources: { goPlus: { status: 'ERROR' } }, security: { complete: false, fatal: [] } }) };
+  await new Scanner({ provider, state, settings, secondary: down }).cycle();
+  const item = state.value.auditQueue.find(entry => entry.address === CA);
+  assert.equal(item.status, 'HARD_REJECT'); assert.equal(item.securityRejected, true);
+  assert.equal(item.securityCheckedAt, 1, 'an unanswered check is retried next cycle, not parked for 30 minutes');
+
+  const approved = memoryState();
+  approved.value.candidates = [{ ...row(Date.now()), address: CA, symbol: 'OLD', status: 'X_REVIEW', deep: { chainPass: true, chartRisk: { pass: true, version: 1 } } }];
+  const fatal = { validate: async () => ({ sources: { goPlus: { status: 'OK' } },
+    security: { complete: true, verdict: 'FATAL', fatal: [{ reason: '可升级代理合约' }], facts: {} } }) };
+  await new Scanner({ provider, state: approved, settings, secondary: fatal }).cycle();
+  const candidate = approved.value.candidates.find(entry => entry.address === CA);
+  assert.notEqual(candidate?.status, 'X_REVIEW');
+  assert.ok(approved.value.events.some(event => event.type === 'RISK_WORSENED'));
+});

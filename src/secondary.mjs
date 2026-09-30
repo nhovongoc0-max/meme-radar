@@ -370,7 +370,10 @@ const EVM_SECURITY_RULES = Object.freeze([
   ['personalSlippageModifiable', 'personal_slippage_modifiable', true, false, '可按地址修改滑点或税率'],
   ['transferPausable', 'transfer_pausable', true, false, '代币转账可暂停'],
   ['blacklisted', 'is_blacklisted', true, false, '合约包含黑名单机制'],
-  ['tradingCooldown', 'trading_cooldown', true, false, '合约包含交易冷却限制']
+  ['tradingCooldown', 'trading_cooldown', true, false, '合约包含交易冷却限制'],
+  // An upgradeable proxy can swap in honeypot logic at any time.
+  ['proxy', 'is_proxy', true, false, '可升级代理合约'],
+  ['antiWhaleModifiable', 'anti_whale_modifiable', true, false, '限额可被修改']
 ]);
 
 const SOL_SECURITY_RULES = Object.freeze([
@@ -460,23 +463,25 @@ const sumPercent = rows => rows.reduce((total, row) => total + (optionalRate(row
 // Deep-audit evidence in the field names scoring.securityView already reads.
 // Anything GoPlus does not return stays null so the audit can say so honestly.
 function goPlusFacts(record, chain, fields, buyTax, sellTax) {
+  // SOL holders carry `account`; SOL dex rows name the pool `id`.
+  const holderAddress = row => normalizedAddress(row?.address ?? row?.account, chain);
+  const dexAddresses = new Set((Array.isArray(record.dex) ? record.dex : [])
+    .flatMap(row => [row?.pair, row?.pool_manager, row?.id]).map(value => normalizedAddress(value, chain)).filter(Boolean));
+  const excluded = row => BURN_ADDRESSES.has(holderAddress(row))
+    || dexAddresses.has(holderAddress(row)) || optionalBoolean(row?.is_locked) === true;
+  // ponytail: GoPlus returns only the top 10 holders; after removing pool/burn/
+  // locked rows this undercounts top10. Use a holders endpoint if it matters.
+  const top10 = Array.isArray(record.holders) && record.holders.length
+    ? Math.min(1, sumPercent(record.holders.filter(row => !excluded(row)).slice(0, 10))) : null;
   if (chain === 'sol') {
     const fee = record.transfer_fee;
     const noFee = fee && typeof fee === 'object' && !Array.isArray(fee) && !Object.keys(fee).length ? 0 : null;
     return {
       renounced_mint: fields.mintable === null ? null : !fields.mintable,
       renounced_freeze_account: fields.freezable === null ? null : !fields.freezable,
-      buy_tax: noFee, sell_tax: noFee
+      buy_tax: noFee, sell_tax: noFee, top_10_holder_rate: top10
     };
   }
-  const dexAddresses = new Set((Array.isArray(record.dex) ? record.dex : [])
-    .flatMap(row => [row?.pair, row?.pool_manager]).map(value => normalizedAddress(value, chain)).filter(Boolean));
-  const excluded = row => BURN_ADDRESSES.has(normalizedAddress(row?.address, chain))
-    || dexAddresses.has(normalizedAddress(row?.address, chain)) || optionalBoolean(row?.is_locked) === true;
-  // ponytail: GoPlus returns only the top 10 holders; after removing pool/burn/
-  // locked rows this undercounts top10. Use a holders endpoint if it matters.
-  const top10 = Array.isArray(record.holders) && record.holders.length
-    ? Math.min(1, sumPercent(record.holders.filter(row => !excluded(row)).slice(0, 10))) : null;
   const lpHolders = Array.isArray(record.lp_holders) && record.lp_holders.length ? record.lp_holders : null;
   const lockRate = lpHolders ? Math.min(1, sumPercent(lpHolders.filter(row => optionalBoolean(row?.is_locked) === true
     || BURN_ADDRESSES.has(normalizedAddress(row?.address, chain))))) : null;
@@ -656,7 +661,8 @@ export class SecondaryValidator {
     try {
       const payload = await requestJson(this.fetchImpl, url, this);
       const parsed = parseGoPlus(payload, context);
-      const result = { source: sourceState(parsed.found ? 'OK' : 'NO_DATA'), security: parsed.security };
+      // checkedAt is the fetch time, so a cache hit does not look fresher than it is.
+      const result = { source: sourceState(parsed.found ? 'OK' : 'NO_DATA'), security: { ...parsed.security, checkedAt: this.now() } };
       if (parsed.found) {
         this.goPlusCache.set(key, { at: this.now(), result });
         if (this.goPlusCache.size > 2_000) this.goPlusCache.delete(this.goPlusCache.keys().next().value);

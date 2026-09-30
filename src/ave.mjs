@@ -1068,9 +1068,11 @@ export class AveClient {
     }
     const partial = { info: reuse ? { ...clone(reuse), stale: !(this.#now() < reuse.expiresAt) } : details ? { ...marketRow(details.token, details.capturedAt, this.#now()), pairs: clone(details.pairs) } : {}, security: {}, pool: {}, pairs: details?.pairs || [], holders: [], traders: [], candles: [],
       _meta: { provider: 'AVE', complete: false, marketComplete: false, endpoints, capturedAt: reuse?.capturedAt ?? details?.capturedAt ?? null, auditedAt: null } };
-    if (reuse && Number.isFinite(reuse.liquidity) && reuse.pairAddress) {
+    // Complete hot-list rows skip pair enrichment, so pairAddress is often
+    // absent; the row's own liquidity is still this cycle's pool evidence.
+    if (reuse && Number.isFinite(reuse.liquidity)) {
       requested.add('pool');
-      partial.pool = { liquidity: reuse.liquidity, pairAddress: reuse.pairAddress, capturedAt: reuse.capturedAt, sourceUpdatedAt: reuse.sourceUpdatedAt };
+      partial.pool = { liquidity: reuse.liquidity, pairAddress: reuse.pairAddress ?? null, capturedAt: reuse.capturedAt, sourceUpdatedAt: reuse.sourceUpdatedAt };
       endpoints.pool = { ok: true, state: 'ok', source: 'discovery', capturedAt: reuse.capturedAt, sourceUpdatedAt: reuse.sourceUpdatedAt };
     }
     if (signal?.aborted) throw fail('ABORTED', 499);

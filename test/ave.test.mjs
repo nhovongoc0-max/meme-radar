@@ -497,3 +497,14 @@ test('healthy but stale market data does not set audit clock or return a fresh p
   assert.equal(info.price, 0.126); assert.equal(freshResult._meta.marketFresh, false);
   assert.equal(tokenInfoPrice(info, fresh.now()), null); assert.equal(tokenInfoPrice(info, info.expiresAt), null);
 });
+
+test('audit reuses a fresh discovery row without pairAddress and still reaches market completeness', async () => {
+  const f = fixture();
+  const marketRow = { address: CA, stale: false, liquidity: 12000, market_cap: 50000, capturedAt: f.now(),
+    sourceUpdatedAt: f.now(), expiresAt: f.now() + 60_000 };
+  const result = await f.client.audit(CA, AT / 1000, 'bsc', { marketRow });
+  assert.equal(result._meta.endpoints.pool.source, 'discovery');
+  assert.equal(result.pool.pairAddress, null);
+  assert.equal(result._meta.marketComplete, true);
+  assert.equal(result._meta.complete, true);
+});

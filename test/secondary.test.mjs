@@ -352,3 +352,24 @@ test('GoPlus facts exclude pool/burn/locked holders, read LP lock and cover robi
   assert.equal(facts.owner_renounced, true);
   assert.equal(facts.is_open_source, true);
 });
+
+test('upgradeable proxy is fatal; SOL holders feed top10 excluding the pool; cache keeps fetch time', async () => {
+  const proxy = await new SecondaryValidator({ fetchImpl: async url => String(url).includes('dexscreener') ? jsonResponse([])
+    : jsonResponse({ code: 1, result: { [evmAddress]: safeEvmSecurity({ is_proxy: '1', owner_address: '0x' + '9'.repeat(40) }) } }) })
+    .validate({ chain: 'bsc', tokenAddress: evmAddress });
+  assert.equal(proxy.security.verdict, 'FATAL');
+  assert.ok(proxy.security.fatal.some(entry => entry.reason === '可升级代理合约'));
+
+  const pool = 'PoolAccount1111111111111111111111111111111';
+  const sol = { mintable: { status: '0' }, freezable: { status: '0' }, closable: { status: '0' },
+    balance_mutable_authority: { status: '0' }, transfer_fee_upgradable: { status: '0' }, non_transferable: { status: '0' },
+    dex: [{ id: pool }], holders: [{ account: pool, percent: '0.3' }, { account: 'Whale111111111111111111111111111111111111111', percent: '0.95' }] };
+  let t = 1000, calls = 0;
+  const validator = new SecondaryValidator({ now: () => t, fetchImpl: async url => String(url).includes('dexscreener')
+    ? jsonResponse([]) : (calls++, jsonResponse({ code: 1, result: sol })) });
+  const first = await validator.validate({ chain: 'sol', tokenAddress: solAddress });
+  assert.equal(first.security.facts.top_10_holder_rate, 0.95);
+  t = 5000;
+  const cached = await validator.validate({ chain: 'sol', tokenAddress: solAddress });
+  assert.equal(calls, 1); assert.equal(cached.security.checkedAt, 1000);
+});

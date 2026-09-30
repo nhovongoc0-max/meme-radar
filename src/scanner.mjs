@@ -572,7 +572,9 @@ export class Scanner {
       // Security stage: GoPlus is free and cached, so every lead gets a contract
       // and holder check before any paid AVE K-line read. It also gates voice.
       const securityGate = this.providerName === 'AVE' && Boolean(this.secondary);
+      let securityDowngrades = new Map();
       if (securityGate) {
+        securityDowngrades = new Map();
         const securityChecks = ['openSource', 'ownerRenounced', 'lpLocked', 'notHoneypot', 'tax', 'concentration', 'dev', 'contractFlags'];
         const pending = auditQueue.filter(item => !item.watched && availableAddresses.has(addressKey(item.address))
           && !(item.status === 'HARD_REJECT' && num(item.nextAuditAt) > startedAt)
@@ -584,18 +586,22 @@ export class Scanner {
           const item = auditable.find(entry => addressKey(entry.row.address) === addressKey(queueItem.address));
           let secondary;
           try { secondary = await this.secondary.validate({ chain, tokenAddress: queueItem.address }); } catch { continue; }
+          // No GoPlus answer is not a verdict: keep prior state and retry next cycle.
+          if (secondary.sources?.goPlus?.status !== 'OK') { queueItem.securityReasons = ['GoPlus暂无数据或请求失败，下轮重试']; continue; }
           const pre = deepScreen({ discovery: item.row, audit: { _meta: { provider: 'AVE' } }, secondary: secondary.security, nowMs: Date.now() }, settings);
           const hard = classifyDeepResult(pre).hardFailed.filter(name => securityChecks.includes(name));
           const fatal = secondary.security?.verdict === 'FATAL';
           const pass = !fatal && !hard.length && secondary.sources?.goPlus?.status === 'OK' && secondary.security?.complete === true
             && securityChecks.every(name => pre.checks[name] !== false);
           const reasons = [...(secondary.security?.fatal || []).map(entry => entry.reason), ...hard];
-          Object.assign(queueItem, { securityPass: pass, securityCheckedAt: Date.now(), securityReasons: reasons.slice(0, 12),
+          Object.assign(queueItem, { securityPass: pass, securityCheckedAt: num(secondary.security?.checkedAt) || Date.now(), securityReasons: reasons.slice(0, 12),
             securityNotProvided: pre.notProvided });
           if (fatal || hard.length) {
             Object.assign(queueItem, { status: 'HARD_REJECT', securityRejected: true, nextAuditAt: Date.now() + settings.hardRejectRecheckMs });
             events = addEvent(events, 'HARD_REJECT', `${item.row.symbol || queueItem.address.slice(0, 6)}：合约/持仓安全检查未通过（${reasons.join('、')}）`, chain, { address: queueItem.address });
-          } else if (queueItem.securityRejected) {
+          }
+          if (!pass) securityDowngrades.set(addressKey(queueItem.address), { hard: fatal || hard.length > 0, reasons });
+          else if (queueItem.securityRejected) {
             Object.assign(queueItem, { status: 'QUEUED', securityRejected: false, nextAuditAt: 0 });
           }
         }
@@ -620,6 +626,14 @@ export class Scanner {
           candidatesByAddress.set(addressKey(row.address), { ...previous, status: 'WAIT_RECHECK',
             deep: { ...previous.deep, chainPass: false }, decisionReason: screen.reasons.join('；') });
         }
+      }
+      // A later failed contract check must also pull an older approval.
+      for (const [key, { hard, reasons }] of securityDowngrades) {
+        const previous = candidatesByAddress.get(key);
+        if (previous?.status !== 'X_REVIEW') continue;
+        candidatesByAddress.set(key, { ...previous, status: hard ? 'HARD_REJECT' : 'WAIT_RECHECK',
+          deep: { ...previous.deep, chainPass: false }, decisionReason: `合约/持仓安全检查未通过：${reasons.join('、') || '证据不完整'}` });
+        events = addEvent(events, 'RISK_WORSENED', `${previous.symbol || previous.address.slice(0, 6)}：风险或证据状态恶化，请重新复核`, chain, { address: previous.address });
       }
       let outcomes = updateOutcomeTracking(
         prior.outcomes,
