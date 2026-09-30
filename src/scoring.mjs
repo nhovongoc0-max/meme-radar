@@ -237,12 +237,18 @@ export function aveDiscoveryScreen(row, config, nowSec = Date.now() / 1000) {
   }
   if (optionalBoolean(row.is_honeypot) === true || row.sellable === false || optionalBoolean(row.cannot_sell_all) === true) reasons.push('已知貔貅或卖出受限');
   if (optionalBoolean(row.is_wash_trading) === true) reasons.push('检测到刷量');
-  for (const [field, label] of [['rug_ratio', 'rug风险'], ['bundler_rate', '捆绑机器人占比'], ['rat_trader_amount_rate', '内幕占比']]) {
-    if ((optionalRate(row[field]) ?? 0) > .3) reasons.push(label + '过高');
+  for (const [field, label, limit] of [['rug_ratio', 'rug风险', config.maxRugRatio], ['bundler_rate', '捆绑机器人占比', config.maxBundlerRate], ['rat_trader_amount_rate', '内幕占比', config.maxInsiderRate]]) {
+    if ((optionalRate(row[field]) ?? 0) > limit) reasons.push(label + '过高');
   }
   if (aveHookPending(row, chain)) reasons.push('Hook架构池待核验，交易路由未确认');
   const signals = discoverySignalView(row), priorityBand = mc >= config.priorityMinMarketCap && mc <= config.priorityMaxMarketCap;
-  const score = (priorityBand ? 35 : 10) + Math.min(25, liquidity / 1000) + Math.min(20, (volume || 0) / 1000) + Math.min(20, num(row.holder_count) / 10);
+  // Queue ordering only: favour net buying and a live but not blown-off 5m move.
+  const buy5m = optionalNonNegativeNumber(row.buy_volume_5m), sell5m = optionalNonNegativeNumber(row.sell_volume_5m);
+  const flowScore = buy5m !== null && sell5m !== null && buy5m + sell5m > 0 ? Math.max(0, (buy5m / (buy5m + sell5m) - .5) * 20) : 0;
+  const change5m = optionalNumber(row.price_change_percent5m);
+  const momentumScore = change5m !== null && change5m >= -.12 && change5m <= .8 ? Math.max(0, Math.min(10, change5m * 25)) : 0;
+  const score = (priorityBand ? 35 : 10) + Math.min(25, liquidity / 1000) + Math.min(20, (volume || 0) / 1000) + Math.min(20, num(row.holder_count) / 10)
+    + flowScore + momentumScore;
   return { pass: reasons.length === 0, reasons: [...new Set(reasons)], priorityBand, score, mc, liquidity, ageSec, ageBasis,
     marketProvider: 'AVE', createdAt: created, signals,
     unknownFields: ['rugRatio', 'bundler', 'insider', 'wash', 'honeypot'].filter(field => ({ rugRatio: optionalRate(row.rug_ratio), bundler: optionalRate(row.bundler_rate),
@@ -259,7 +265,8 @@ export function knownRiskReasons(row, config) {
   if (lp !== null && lp < config.strictLiquidity) reasons.push('流动性低于深审门槛');
   if ((buy !== null && buy > config.maxBuyTax) || (sell !== null && sell > config.maxSellTax)
     || (buy !== null && sell !== null && Math.abs(buy - sell) > config.maxTaxAsymmetry)) reasons.push('交易税超过风险门槛');
-  if (dev !== null && dev > .01) reasons.push('DEV持仓超过1%');
+  const maxDev = config.maxDevHoldRate ?? .05;
+  if (dev !== null && dev > maxDev) reasons.push(`DEV持仓超过${Math.round(maxDev * 100)}%`);
   // Never reinterpret the live feed's generic 1m counters as 5m activity.
   if (optionalNumber(row.volume_5m) === 0) reasons.push('近5分钟无成交，暂不进入候选');
   return reasons;
@@ -289,11 +296,11 @@ export function discoveryScreen(row, config, nowSec = Date.now() / 1000) {
   if (liquidityValue === null) reasons.push('流动性数据未知');
   else if (liquidity < config.minLiquidity) reasons.push('流动性不足');
   if (rug === null) reasons.push('rug风险数据未知');
-  else if (rug > 0.30) reasons.push('rug风险过高');
+  else if (rug > config.maxRugRatio) reasons.push('rug风险过高');
   if (bundler === null) reasons.push('捆绑机器人数据未知');
-  else if (bundler > 0.30) reasons.push('捆绑机器人占比过高');
+  else if (bundler > config.maxBundlerRate) reasons.push('捆绑机器人占比过高');
   if (insider === null) reasons.push('内幕数据未知');
-  else if (insider > 0.30) reasons.push('内幕/老鼠仓占比过高');
+  else if (insider > config.maxInsiderRate) reasons.push('内幕/老鼠仓占比过高');
   if (wash === null) reasons.push('刷量数据未知');
   else if (wash) reasons.push('检测到刷量');
   if (lower(config.chain) !== 'sol') {
@@ -658,9 +665,14 @@ export function empiricalSellability({ info, discovery, traders, nowSec = Date.n
   };
 }
 
-export function deepScreen({ discovery, audit, nowMs = Date.now() }, config) {
+export function deepScreen({ discovery, audit, secondary = null, nowMs = Date.now() }, config) {
   const info = audit.info || {}, pool = audit.pool || {};
-  const sec = securityView(audit.security, discovery, info);
+  // GoPlus facts fill what the primary audit lacks; primary values win, except
+  // that either source flagging a honeypot is enough.
+  const facts = secondary?.facts || {};
+  const own = Object.fromEntries(Object.entries(audit.security || {}).filter(([, value]) => value !== null && value !== undefined && value !== ''));
+  const sec = securityView({ ...facts, ...own }, discovery, info);
+  if (optionalBoolean(facts.is_honeypot) === true) sec.honeypot = true;
   const isSol = lower(config.chain) === 'sol';
   const openSource = optionalBoolean(sec.openSource);
   const ownerRenounced = optionalBoolean(sec.ownerRenounced);
@@ -699,7 +711,7 @@ export function deepScreen({ discovery, audit, nowMs = Date.now() }, config) {
       && Math.abs(buyTax - sellTax) <= config.maxTaxAsymmetry,
     rug: rugRatio !== null && rugRatio <= config.maxRugRatio,
     concentration: top10 !== null && top10 <= config.maxTop10Rate,
-    dev: devHold !== null && devHold <= 0.01,
+    dev: devHold !== null && devHold <= (config.maxDevHoldRate ?? .05),
     insider: insider !== null && insider <= config.maxInsiderRate,
     bundler: bundler !== null && bundler <= config.maxBundlerRate,
     sniper: sniperHold !== null && sniperHold <= config.maxSniperHoldRate,
@@ -708,8 +720,27 @@ export function deepScreen({ discovery, audit, nowMs = Date.now() }, config) {
     wallets: wallets.pass,
     observation: observation.pass,
     chartRisk: chartRisk.pass,
-    marketBehavior: marketBehavior.pass
+    marketBehavior: marketBehavior.pass,
+    contractFlags: !secondary?.fatal?.length
   };
+  // AVE has no rug/insider/bundler/sniper/wash/wallet-tag feed, and GoPlus
+  // omits holders/LP on some chains. Missing-by-source is reported separately
+  // for manual review instead of blocking forever or pretending it passed.
+  const notProvided = audit._meta?.provider !== 'AVE' ? [] : [
+    rugRatio === null ? ['rug', 'rugRatio'] : null,
+    insider === null ? ['insider', 'insider'] : null,
+    bundler === null ? ['bundler', 'bundler'] : null,
+    sniperHold === null ? ['sniper', 'sniperHold'] : null,
+    wash === null ? ['wash', 'wash'] : null,
+    top10 === null ? ['concentration', 'top10'] : null,
+    devHold === null ? ['dev', 'devHold'] : null,
+    openSource === null ? ['openSource', 'openSource'] : null,
+    !lpBurned && lockRate === null ? ['lpLocked', 'lockRate'] : null,
+    !(Array.isArray(audit.holders) && audit.holders.length) ? ['wallets', null] : null
+  ].filter(Boolean);
+  const skippedFields = new Set(notProvided.map(([, field]) => field).filter(Boolean));
+  if (notProvided.some(([check]) => check === 'wallets')) wallets.unknownFields.forEach(field => skippedFields.add(field));
+  for (const [check] of notProvided) delete checks[check];
   const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
   const chainPass = failed.length === 0;
   const honeypotEvidence = isSol ? 'SOL不使用EVM貔貅字段；以铸币和冻结权限为安全基线'
@@ -760,8 +791,9 @@ export function deepScreen({ discovery, audit, nowMs = Date.now() }, config) {
   ].filter(Boolean);
   return {
     chainPass, failed, checks, wallets, observation, chartRisk, marketBehavior, sellability, honeypotEvidence,
-    unknownFields: [...new Set(unknownFields)],
-    blockingUnknownFields: [...new Set(blockingUnknownFields)],
+    unknownFields: [...new Set(unknownFields)].filter(field => !skippedFields.has(field)),
+    blockingUnknownFields: [...new Set(blockingUnknownFields)].filter(field => !skippedFields.has(field)),
+    notProvided: notProvided.map(([check]) => check), contractFatal: secondary?.fatal || [],
     security: {
       openSource, ownerRenounced: isSol ? renouncedMint === true && renouncedFreezeAccount === true : ownerRenounced,
       evmOwnerRenounced: ownerRenounced, renouncedMint, renouncedFreezeAccount, honeypot, buyTax, sellTax,

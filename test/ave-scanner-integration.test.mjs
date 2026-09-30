@@ -100,7 +100,7 @@ test('AVE fast alerts reject mature inactive pools and deep ATH collapses withou
 
 test('known hazards veto AVE observations and another same-token pool cannot hide a Hook architecture', () => {
   for (const changes of [{ is_honeypot: true }, { sellable: false }, { cannot_sell_all: '1' }, { is_wash_trading: true },
-    { buy_tax: .2 }, { dev_team_hold_rate: .02 }, { rug_ratio: .31 }]) {
+    { buy_tax: .2 }, { dev_team_hold_rate: .06 }, { rug_ratio: .31 }]) {
     assert.equal(discoveryScreen(row(AT, changes), settings, AT / 1000).pass, false);
   }
   const hook = { chain: 'bsc', address: CA, pair: ca(4), amm: 'uniswap_v4' };
@@ -170,15 +170,15 @@ test('scanner AVE provider alias keeps healthy incomplete audits in WAIT_RECHECK
   assert.equal(state.value.events.some(event => event.type === 'CANDIDATE_NEW'), false);
 });
 
-test('default open-source fast feed never turns a successful hot-list read into an automatic details request', async () => {
+test('fast feed with deep audits disabled never turns a successful hot-list read into an automatic details request', async () => {
   const state = memoryState(); let audits = 0;
   const provider = { keyEpoch: 0, configured: async () => true, metrics: {},
     discover: async () => [row(Date.now())],
     audit: async () => { audits++; return marketAudit(Date.now()); },
     lastDiscoveryHealth: { provider: 'AVE', complete: true } };
-  const scanner = new Scanner({ provider, state, settings: { ...config, chain: 'bsc' } });
+  const scanner = new Scanner({ provider, state, settings: { ...config, chain: 'bsc', maxDeepAuditsPerCycle: 0 } });
   await scanner.cycle(); scanner.stop();
-  assert.equal(config.maxDeepAuditsPerCycle, 0);
+  assert.equal(config.maxDeepAuditsPerCycle, 2, 'deep audits default on at a budget-safe rate');
   assert.equal(audits, 0);
   assert.equal(state.value.status, 'RUNNING');
   assert.equal(state.value.prequalifiedCount, 1);
@@ -342,4 +342,25 @@ test('actual mocked AveClient feeds live and Scanner using one cache while unkno
   assert.equal(calls.length, 6, 'the scanner adds the bounded details, pair and K-line audit reads');
   assert.ok(calls.every(url => url.startsWith('https://prod.ave-api.com/v2/')));
   live.stop(); scanner.stop();
+});
+
+test('GoPlus security stage gates AVE reads: fatal contract is rejected without any AVE audit call', async () => {
+  const facts = { is_open_source: true, owner_renounced: true, is_honeypot: false, buy_tax: 0, sell_tax: 0,
+    top_10_holder_rate: .2, dev_team_hold_rate: 0, lock_percent: .9 };
+  const run = async security => {
+    const state = memoryState(); let audits = 0;
+    const provider = { keyEpoch: 0, configured: async () => true, discover: async () => [row(Date.now())],
+      audit: async () => { audits++; return marketAudit(Date.now()); }, metrics: {}, lastDiscoveryHealth: { complete: true } };
+    const secondary = { validate: async () => ({ status: 'COMPLETE', complete: true,
+      sources: { goPlus: { status: 'OK' }, dexScreener: { status: 'OK' } }, market: { complete: true },
+      security: { complete: true, ...security } }) };
+    await new Scanner({ provider, state, settings, secondary }).cycle();
+    return { audits, item: state.value.auditQueue.find(item => item.address === CA), events: state.value.events };
+  };
+  const bad = await run({ verdict: 'FATAL', fatal: [{ reason: '可增发' }], facts });
+  assert.equal(bad.audits, 0);
+  assert.equal(bad.item.status, 'HARD_REJECT'); assert.equal(bad.item.securityPass, false);
+  const good = await run({ verdict: 'NO_FATAL_FLAGS', fatal: [], facts });
+  assert.equal(good.item.securityPass, true); assert.ok(good.item.securityCheckedAt > 0);
+  assert.equal(good.audits, 1, 'only a GoPlus-passed token spends an AVE read');
 });

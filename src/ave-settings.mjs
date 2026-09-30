@@ -126,7 +126,7 @@ export function createAveSettings({ directory, fetchImpl = fetch, now = Date.now
         const safe = safeError(error);
         if (safe.code === 'AVE_RATE_LIMIT') nextAt = now() + 60_000;
         checkAuthority();
-        if (candidate === key) health = { data: { status: 'error', checkedAt: now(), message: safe.message, code: safe.code } };
+        if (candidate === key || !key) health = { data: { status: 'error', checkedAt: now(), message: safe.message, code: safe.code } };
         throw safe;
       }
       checkAuthority();

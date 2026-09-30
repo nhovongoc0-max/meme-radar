@@ -257,9 +257,10 @@ test('invalid/conflicting candles and foreign identity fail schema, never get si
 test('audit preserves market fields and candles but does not extend a quote through the slow lane', async () => {
   const f = fixture(), result = await f.client.audit(CA, AT / 1000, 'bsc');
   assert.equal(result.info.price, 0.126); assert.equal(tokenInfoPrice(result.info, f.now()), null); assert.equal(result.candles.length, 7);
-  assert.equal(result._meta.complete, false); assert.equal(result._meta.marketComplete, true); assert.equal(result._meta.auditedAt, null);
-  assert.equal(result._meta.transportComplete, true); assert.equal(result._meta.evidenceComplete, false); assert.equal(result._meta.marketFresh, false);
-  assert.deepEqual(result._meta.missingEvidence, ['security', 'holders', 'traders']);
+  // Contract/holder evidence comes from GoPlus in the scanner, so AVE market + candles complete the AVE part.
+  assert.equal(result._meta.complete, true); assert.equal(result._meta.marketComplete, true); assert.equal(result._meta.auditedAt, null);
+  assert.equal(result._meta.transportComplete, true); assert.equal(result._meta.evidenceComplete, true); assert.equal(result._meta.marketFresh, false);
+  assert.deepEqual(result._meta.missingEvidence, ['traders']);
   assert.deepEqual(result.security, {}); assert.equal(result.pool.liquidity, 12000); assert.deepEqual(result.holders, []); assert.deepEqual(result.traders, []);
   for (const field of ['security', 'holders', 'traders']) assert.equal(result._meta.endpoints[field].ok, false);
   assert.equal(f.client.snapshot().budget.used, 20);

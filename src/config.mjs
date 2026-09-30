@@ -18,10 +18,12 @@ export const config = Object.freeze({
   supportedChains: Object.freeze(['sol', 'bsc', 'base', 'eth', 'robinhood']),
   port: boundedInteger(process.env.RADAR_PORT, 3791, 1024, 65_535),
   scanIntervalMs: boundedInteger(process.env.SCAN_INTERVAL_MS, 300_000, 30_000, 30 * 60_000),
-  // The public fast-feed build performs one hot-list request per turn. Deep
-  // token reads are opt-in because a second endpoint can have a stricter
-  // provider rate bucket and must never stall the primary discovery lane.
-  maxDeepAuditsPerCycle: boundedInteger(process.env.MAX_DEEP_AUDITS_PER_CYCLE, 0, 0, 12),
+  // Contract/holder checks go to GoPlus (free, cached 30 min) for every lead;
+  // only tokens that pass spend an AVE read, and that read is 1m K-lines alone
+  // (the discovery row supplies market data). AVE's rate lane spaces requests
+  // minutes apart, so these are upper bounds, not throughput. 0 disables.
+  maxDeepAuditsPerCycle: boundedInteger(process.env.MAX_DEEP_AUDITS_PER_CYCLE, 2, 0, 12),
+  maxSecurityChecksPerCycle: boundedInteger(process.env.MAX_SECURITY_CHECKS_PER_CYCLE, 10, 0, 30),
   auditCycleBudgetMs: 80_000,
   // Historical K-line backfills are optional; live observations still track outcomes.
   outcomeReadsPerCycle: 0,
@@ -49,6 +51,7 @@ export const config = Object.freeze({
   maxInsiderRate: 0.15,
   maxBundlerRate: 0.15,
   maxSniperHoldRate: 0.08,
+  maxDevHoldRate: 0.05,
   maxBotHoldRate: 0.20,
   maxLinkedHoldRate: 0.10,
   maxBuyTax: 0.05,
@@ -59,6 +62,7 @@ export const config = Object.freeze({
   dynamicRecheckMs: 2 * 60_000,
   chainPassRecheckMs: 5 * 60_000,
   hardRejectRecheckMs: 6 * 60 * 60_000,
+  chartRiskExclusionMs: 24 * 60 * 60_000,
   queueRetentionMs: 24 * 60 * 60_000,
   candidateRetentionMs: 2 * 60 * 60_000,
   // A passing lead remains visible across a complete multi-chain/page rotation.

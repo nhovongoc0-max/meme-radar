@@ -14,8 +14,12 @@ const CHAIN_IDS = new Set(['sol', 'bsc', 'base', 'eth', 'robinhood', 'arc', 'sta
 const CHECK_FIELDS = [
   'openSource', 'ownerRenounced', 'lpLocked', 'notHoneypot', 'tax', 'rug',
   'concentration', 'dev', 'insider', 'bundler', 'sniper', 'wash', 'liquidity',
-  'wallets', 'observation', 'chartRisk', 'marketBehavior'
+  'wallets', 'observation', 'chartRisk', 'marketBehavior', 'contractFlags'
 ];
+const NOT_PROVIDED_LABELS = { rug: 'rug风险', insider: '内幕持仓', bundler: '捆绑交易', sniper: '狙击持仓', wash: '刷量',
+  concentration: '前10持仓', dev: 'DEV持仓', openSource: '源码开源', lpLocked: 'LP锁仓', wallets: '钱包画像' };
+// GoPlus contract/holder check freshness required before a live lead may speak.
+const VOICE_SECURITY_MAX_AGE_MS = 60 * 60_000;
 
 function finite(value, fallback = 0) {
   const parsed = Number(value);
@@ -58,7 +62,7 @@ function publicError(status) {
   if (status === 'BUDGET_PAUSED') return '本机每日预算已用完，下一预算日继续。';
   if (status === 'QUOTA_PAUSED') return 'AVE 返回配额不足，已暂停请求，不会自动购买。';
   if (status === 'RATE_LIMITED') return '行情接口请求受限，系统将等待冷却后复查。';
-  if (status === 'GMGN_AUTH_REQUIRED') return 'GMGN只读数据源尚未完成本机配置。';
+  if (status === 'GMGN_AUTH_REQUIRED') return 'AVE 行情 API 尚未配置。';
   if (status === 'DEGRADED') return '本轮部分数据不完整，系统将自动复查。';
   if (status === 'ERROR' || status === 'STATE_ERROR') return '数据请求暂时失败，下一轮将自动重试。';
   return '';
@@ -193,8 +197,14 @@ function liveVoiceRows(liveDiscovery, state, scope, chain) {
   let source;
   try { source = liveDiscovery.snapshot(chain); } catch { return []; }
   const snapshot = publicLiveSnapshot(source, chain);
+  const queue = new Map((scope?.auditQueue || []).filter(item => typeof item?.address === 'string')
+    .map(item => [tokenKey(chain, item.address), item]));
+  const now = Date.now();
   return currentLiveRows(snapshot.rows, scope, chain).slice(0, 200).map(row => {
     const excluded = state.riskExclusions?.[tokenKey(chain, row.address)];
+    const item = queue.get(tokenKey(chain, row.address));
+    const checkedAt = finiteOrNull(item?.securityCheckedAt);
+    const securityPass = item?.securityPass === true && checkedAt !== null && now - checkedAt <= VOICE_SECURITY_MAX_AGE_MS;
     return {
       source: 'live', chain, address: text(row.address, 80),
       symbol: text(row.symbol || '?', 30), name: text(row.name, 80),
@@ -207,9 +217,12 @@ function liveVoiceRows(liveDiscovery, state, scope, chain) {
       // The latest upstream observation is also the moment a previously
       // incomplete row can become eligible. Quiet baselines and the 24-hour
       // address history prevent quote refreshes from creating repeat alerts.
-      auditedAt: finite(row.newAt || row.sourceUpdatedAt),
+      // The voice window opens when the row is both live and contract-checked,
+      // so a check that lands after first sight on a rotated chain still speaks.
+      auditedAt: Math.max(finite(row.newAt || row.sourceUpdatedAt), checkedAt ?? 0),
       staleAt: finite(row.expiresAt),
-      qualified: row.auditEligible === true && row.stale !== true && row.discoveryState === 'READY' && !excluded
+      securityPass,
+      qualified: row.auditEligible === true && row.stale !== true && row.discoveryState === 'READY' && !excluded && securityPass
     };
   });
 }
@@ -304,6 +317,7 @@ function publicCandidate(row = {}) {
       failed: Array.isArray(deep.failed) ? deep.failed.slice(0, 32).map(value => text(value, 40)) : [],
       unknownFields: Array.isArray(deep.unknownFields) ? deep.unknownFields.slice(0, 48).map(value => text(value, 64)) : [],
       blockingUnknownFields: Array.isArray(deep.blockingUnknownFields) ? deep.blockingUnknownFields.slice(0, 48).map(value => text(value, 64)) : [],
+      notProvided: Array.isArray(deep.notProvided) ? deep.notProvided.filter(value => Object.hasOwn(NOT_PROVIDED_LABELS, value)).map(value => NOT_PROVIDED_LABELS[value]) : [],
       checks: publicChecks(deep.checks),
       honeypotEvidence: text(deep.honeypotEvidence, 80),
       security: {
@@ -407,9 +421,9 @@ function publicEvent(event = {}) {
   const fixedMessage = type === 'ERROR'
     ? '数据请求暂时失败，系统会在下一轮重试。'
     : type === 'RATE_LIMITED'
-      ? 'GMGN请求频率超限，系统已进入等待重试。'
+      ? '行情接口请求受限，系统已进入等待重试。'
       : type === 'AUTH'
-        ? 'GMGN只读数据源尚未完成本机配置。'
+        ? 'AVE 行情 API 尚未配置。'
         : publicMessage(event.message, '雷达状态已更新。', 160);
   return { at: finite(event.at), type, chain: text(event.chain, 32), message: fixedMessage };
 }
@@ -855,7 +869,8 @@ export function createServer({ state, settings, controls, switchChain, saveGmgnK
   liveDiscovery, enqueueReview, ave, getAveConnection, getMarketStatus, updater, onUpdateReady, supportedChains = [] }) {
   const publicChains = allowedChainIds(supportedChains);
   const dashboard = path.join(settings.publicDir, 'index.html');
-  const dashboardHtml = fs.readFileSync(dashboard, 'utf8');
+  // Browsers normalize CRLF to LF before hashing inline scripts for CSP.
+  const dashboardHtml = fs.readFileSync(dashboard, 'utf8').replace(/\r\n?/g, '\n');
   const csp = contentSecurityPolicy(dashboardHtml);
   let handoffScheduled = false;
   const aveSnapshot = () => publicAveConnection(readSnapshot(() => ave?.snapshot()));

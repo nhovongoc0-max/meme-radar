@@ -1636,6 +1636,7 @@
       const unknownCount = Array.isArray(deep.blockingUnknownFields) ? deep.blockingUnknownFields.length
         : Array.isArray(deep.unknownFields) ? deep.unknownFields.length : 0;
       if (backendDisposition(row) === 'waiting' && unknownCount > 0) add('有' + unknownCount + '项必要证据暂未返回，未知值不会按安全处理');
+      if (Array.isArray(deep.notProvided) && deep.notProvided.length) add('数据源未提供，需人工核验：' + deep.notProvided.map(function (label) { return safeMessage(label, ''); }).join('、'));
       const secondary = row.secondary || {};
       const secondarySources = secondary.sources || {};
       const secondaryCovered = Object.values(secondarySources).some(function (source) { return source && source.status !== 'UNSUPPORTED'; });
@@ -1659,6 +1660,7 @@
         else if (code === 'rug') add('跑路风险为' + formatPercent(security.rugRatio) + '，要求不超过' + formatPercent(policy.maxRugRatio));
         else if (code === 'concentration') add('前10大地址持仓为' + formatPercent(security.top10) + '，要求不超过' + formatPercent(policy.maxTop10Rate));
         else if (code === 'dev') add('开发者权限或持仓未通过，当前公开摘要没有更详细数值');
+        else if (code === 'contractFlags') add('GoPlus检测到高风险合约权限');
         else if (code === 'insider') add('内幕钱包持仓为' + formatPercent(security.insider) + '，要求不超过' + formatPercent(policy.maxInsiderRate));
         else if (code === 'bundler') add('捆绑交易持仓为' + formatPercent(security.bundler) + '，要求不超过' + formatPercent(policy.maxBundlerRate));
         else if (code === 'sniper') add('狙击钱包持仓为' + formatPercent(security.sniperHold) + '，要求不超过' + formatPercent(policy.maxSniperHoldRate));

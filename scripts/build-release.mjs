@@ -11,7 +11,7 @@ const fixedTime = new Date('2000-01-01T00:00:00.000Z');
 const validVersion = value => typeof value === 'string' && /^(0|[1-9]\d{0,4})\.(0|[1-9]\d{0,4})\.(0|[1-9]\d{0,4})$/.test(value);
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
 const byteOrder = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b));
-const excludedSegments = new Set(['.git', '.runtime', '.local-data', 'state', 'logs', 'node_modules', 'runtime']);
+const excludedSegments = new Set(['.git', '.runtime', '.local-data', 'state', 'logs', 'node_modules', 'runtime', 'memory']);
 const credentialNames = new Set([
   '.env', '.npmrc', 'ave-credentials.json', 'gmgn-api-key', 'telegram-bot-token', 'agent-private-key',
   'gmgn-pending-signing-key.pem',
