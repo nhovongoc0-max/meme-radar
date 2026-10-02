@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import fs from 'node:fs';
+import os from 'node:os';
+import crypto from 'node:crypto';
 import { Readable } from 'node:stream';
 import { EventEmitter } from 'node:events';
 import { fileURLToPath } from 'node:url';
@@ -220,6 +223,36 @@ test('AVE configuration is local-only, requires same-origin JSON and never opens
   assert.equal(JSON.parse(response.body).ave.executionReady, false);
   const trading = await dispatch(server, { method: 'POST', pathName: '/api/ave-submit', headers: { origin: 'http://127.0.0.1:3791' } });
   assert.equal(trading.status, 405);
+});
+
+test('inline CSP hashes follow the parser newline normalization on a CRLF checkout', async () => {
+  // The HTML parser normalizes CRLF and lone CR to LF before the browser hashes
+  // inline content. Git for Windows defaults to core.autocrlf=true, so a checkout
+  // stores these blocks with CRLF; hashing the raw file would advertise hashes the
+  // browser never computes, and every inline style and script would be blocked.
+  const style = 'body { color: #fff; }\n.card { margin: 0; }\n';
+  const script = 'const ready = true;\n';
+  const crlf = value => value.replace(/\n/g, '\r\n');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'radar-crlf-'));
+  fs.writeFileSync(path.join(dir, 'index.html'),
+    '<!doctype html>\r\n<html><head>\r\n<style>' + crlf(style) + '</style>\r\n'
+    + '<script>' + crlf(script) + '</script>\r\n</head><body></body></html>\r\n');
+  try {
+    const server = createServer({
+      settings: { ...settings, publicDir: dir },
+      state: { value: { status: 'RUNNING', generatedAt: Date.now(), candidates: [] } }
+    });
+    const page = await dispatch(server);
+    assert.equal(page.status, 200);
+    const policy = page.headers['content-security-policy'];
+    const digest = value => `'sha256-${crypto.createHash('sha256').update(value).digest('base64')}'`;
+    assert.ok(policy.includes(digest(style)), `style hash missing from CSP: ${policy}`);
+    assert.ok(policy.includes(digest(script)), `script hash missing from CSP: ${policy}`);
+    assert.ok(!policy.includes(digest(crlf(style))), 'the CRLF hash must never be advertised');
+    assert.ok(!policy.includes(digest(crlf(script))), 'the CRLF hash must never be advertised');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('HTTP handler enforces local boundary, strong CSP and only safe local configuration writes', async () => {

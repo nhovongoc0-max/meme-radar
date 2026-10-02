@@ -624,7 +624,12 @@ function inlineHashes(html, tagName) {
   const hashes = [];
   const pattern = new RegExp(`<${tagName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tagName}>`, 'gi');
   for (const match of html.matchAll(pattern)) {
-    const digest = crypto.createHash('sha256').update(match[1], 'utf8').digest('base64');
+    // The HTML parser normalizes CRLF and lone CR to LF before hashing inline
+    // content. A CRLF working copy (the Windows default with core.autocrlf=true)
+    // would otherwise yield hashes that never match the browser's, silently
+    // blocking every inline style and script.
+    const normalized = match[1].replace(/\r\n?/g, '\n');
+    const digest = crypto.createHash('sha256').update(normalized, 'utf8').digest('base64');
     hashes.push(`'sha256-${digest}'`);
   }
   return hashes;
