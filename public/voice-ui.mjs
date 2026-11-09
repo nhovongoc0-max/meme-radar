@@ -38,7 +38,7 @@ $('voiceLanguage').value = voiceLanguage;
 const t = key => copy[key][Math.max(0, locales.indexOf(locale))];
 const ignored = row => {
   const marks = read('robinhoodRadarManualMarksV1', {});
-  const key = voiceKey(row), address = key.slice(key.indexOf(':') + 1);
+  const key = voiceKey({ ...row, alertKind: undefined }), address = key.slice(key.indexOf(':') + 1);
   return (marks[key] || (row.chain === 'robinhood' ? marks[address] : null))?.decision === 'ignored';
 };
 function paint() {
@@ -63,11 +63,13 @@ async function notify() {
       if (!lock || started !== epoch || !enabled || !online || Number($('voiceVolume').value) === 0) return;
       const now = Date.now(), saved = read(historyKey, {});
       const notified = Object.fromEntries(Object.entries(saved.notified || {}).filter(([, at]) => Number.isFinite(at) && now - at < VOICE_TTL));
-      const batch = tracker.batch(notified, now, ignored);
+      const pending = tracker.batch(notified, now, ignored);
+      const upgraded = pending.some(row => row.alertKind === 'momentum');
+      const batch = pending.filter(row => (row.alertKind === 'momentum') === upgraded);
       if (!batch.length || now - (saved.lastAt || 0) < 60_000) return;
       let played = false, announcement = null, announcedRows = [];
       try {
-        played = await player.play(Number($('voiceVolume').value) / 100, { language: voiceLanguage, mode: snapshot?.mode, onStart() {
+        played = await player.play(Number($('voiceVolume').value) / 100, { language: voiceLanguage, mode: upgraded ? 'momentum' : snapshot?.mode, onStart() {
           if (started !== epoch || !enabled || !online || Number($('voiceVolume').value) === 0) return false;
           const at = Date.now();
           // Speech may have waited in the browser queue. Recheck the latest
@@ -85,7 +87,7 @@ async function notify() {
           tracker.acknowledge(announcedRows, at);
           announcement = { id: ++alertSequence, startedAt: at, rows: announcedRows.map(row => ({
             source: row.source === 'observation' ? 'observation' : row.source === 'live' ? 'live' : 'audit', chain: row.chain, address: row.address,
-            auditedAt: row.auditedAt, staleAt: row.staleAt
+            auditedAt: row.auditedAt, staleAt: row.staleAt, ...(row.alertKind === 'momentum' ? { alertKind: 'momentum' } : {})
           })) };
           window.dispatchEvent(new CustomEvent('radar-voice-start', { detail: announcement }));
           return true;

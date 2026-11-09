@@ -2,11 +2,13 @@
 
 作者：**DeFi狙击手** · X：[@bi_9527zx](https://x.com/bi_9527zx)
 
-本地运行的多链 Meme 观察雷达。AVE 负责热榜发现；受支持链使用批量 DexScreener 行情补齐卡片，不额外消耗 AVE CU。默认快速扫描不逐币进行 GoPlus 或 K 线深审。当前版本 **v2.1.2**，按免费 API 的请求限制设计。
+本地运行的多链 Meme 观察雷达。AVE 负责热榜发现；受支持链使用批量 DexScreener 行情补齐卡片，不额外消耗 AVE CU。默认快速扫描不逐币进行 GoPlus 或 K 线深审。当前版本 **v2.2.0**，按免费 API 的请求限制设计。
 
-### v2.1.2 更新
+### v2.2.0 更新
 
-增强稳定性。
+- 持续异动提醒：复用已有行情，观察到同源同池的持续活跃变化后置顶显示；开启语音后可独立提醒一次。重复缓存不算确认，过期或异动回落时撤下升级高亮。
+- 入选理由标签：每张卡片最多两项，例如“成交活跃”“流动性增加”“新入选”。这些是行情观察理由，不是安全审核或买入建议。
+- 不新增逐币 API 请求、不接入 Telegram、不改动触手动画。规则与限制见[观察信号说明](docs/OBSERVATION-SIGNALS.md)。
 
 ### 主要功能
 
@@ -18,7 +20,7 @@
 - 请求串行与失败退避，行情补全轮换，保留免费 API 的限频和预算保护。
 - 请求超时取消响应读取，卡住后由守护恢复；启动核对版本，防止误开旧进程。动画效果保持不变。
 
-更新记录见 [v2.1.2](docs/RELEASE-NOTES-v2.1.2.md)。
+更新记录见 [v2.2.0](docs/RELEASE-NOTES-v2.2.0.md)。
 
 使用与配置教程请查看 X：[@bi_9527zx](https://x.com/bi_9527zx) 的置顶内容。
 
@@ -42,9 +44,9 @@
 
 请完整解压后启动；升级前关闭旧版并备份本机配置。
 
-- [Windows x64 一键便携版](https://github.com/nhovongoc0-max/meme-radar/releases/download/v2.1.2/MemeRadar-OpenSource-Windows-x64-2.1.2.zip)
-- [macOS 版](https://github.com/nhovongoc0-max/meme-radar/releases/download/v2.1.2/MemeRadar-OpenSource-macOS-2.1.2.zip)
-- [SHA-256 校验文件](https://github.com/nhovongoc0-max/meme-radar/releases/download/v2.1.2/SHA256SUMS-2.1.2.txt)
+- [Windows x64 一键便携版](https://github.com/nhovongoc0-max/meme-radar/releases/download/v2.2.0/MemeRadar-OpenSource-Windows-x64-2.2.0.zip)
+- [macOS 版](https://github.com/nhovongoc0-max/meme-radar/releases/download/v2.2.0/MemeRadar-OpenSource-macOS-2.2.0.zip)
+- [SHA-256 校验文件](https://github.com/nhovongoc0-max/meme-radar/releases/download/v2.2.0/SHA256SUMS-2.2.0.txt)
 
 也可以在 [Releases](https://github.com/nhovongoc0-max/meme-radar/releases) 页面查看版本说明与文件校验值。
 

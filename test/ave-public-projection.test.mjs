@@ -74,7 +74,7 @@ test('AVE live endpoint allowlists fields, keeps quote expiry and supplies the a
     formatSignedPercent: String, formatDuration: String, radarLinks: () => '',
     voiceSpotlightRank: () => Infinity, voiceSpotlightKey: r => r.chain + ':' + r.address,
     voiceSpotlight: null, voiceSpotlightSelected: '', voiceSpotlightSignature: '', voiceSpotlightSnapshot: null };
-  const poolStart = html.indexOf('function observationVoiceReady('), poolEnd = html.indexOf('// Voice spotlight:', poolStart);
+  const poolStart = html.indexOf('function currentLeadSignal('), poolEnd = html.indexOf('// Voice spotlight:', poolStart);
   const start = html.indexOf('function liveEmptyMessage('), end = html.indexOf('async function refreshLive(', start);
   const draw = html.slice(poolStart, poolEnd) + html.slice(start, end) + ';renderLive();';
   vm.runInNewContext(draw, context);

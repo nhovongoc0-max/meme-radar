@@ -7,6 +7,7 @@ import { tokenKey } from './local-store.mjs';
 import { CHART_RISK_VERSION, applyRiskExclusion } from './chart-risk.mjs';
 import { AveError } from './ave-settings.mjs';
 import { activeLiveLeads } from './live-leads.mjs';
+import { publicLeadSignal } from './lead-signals.mjs';
 
 const LOOPBACK_ADDRESSES = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const CHAIN_IDS = new Set(['sol', 'bsc', 'base', 'eth', 'robinhood', 'arc', 'stable']);
@@ -137,8 +138,12 @@ export function observationVoiceSnapshot(state, enabledChains, liveDiscovery = n
       let fresh = [];
       try { fresh = currentLiveRows(publicLiveSnapshot(liveDiscovery?.snapshot(chain), chain).rows, scope, chain, now); } catch {}
       const rows = new Map();
-      for (const row of [...fresh, ...retainedLiveRows(scope, chain, now)]) {
-        const key = tokenKey(chain, row.address), alertAt = finite(row.qualifiedAt);
+      const freshKeys = new Set(fresh.map(row => tokenKey(chain, row.address)));
+      for (const row of [...fresh, ...retainedLiveRows(scope, chain, now).filter(row => !freshKeys.has(tokenKey(chain, row.address)))]) {
+        const signal = publicLeadSignal(row, now);
+        if (signal.momentum?.state === 'COOLING') continue;
+        const upgraded = signal.momentum?.state === 'ACTIVE';
+        const key = tokenKey(chain, row.address), alertAt = finite(upgraded ? signal.momentum.eventAt : row.qualifiedAt);
         const retained = row.retainedSnapshot === true;
         const alertUntil = Math.min(alertAt + 30 * 60_000, finite(retained ? row.displayUntil : row.expiresAt));
         if (rows.has(key) || rejected.has(key) || state.riskExclusions?.[key]
@@ -149,7 +154,8 @@ export function observationVoiceSnapshot(state, enabledChains, liveDiscovery = n
           marketCap: finiteOrNull(row.marketCap), liquidity: finiteOrNull(row.liquidity),
           volume5m: finiteOrNull(row.volume5m), createdAt: finiteOrNull(row.createdAt),
           ageBasis: ['pool', 'trade', 'launch', 'token'].includes(row.ageBasis) ? row.ageBasis : 'unknown',
-          firstSeenAt: finite(row.firstSeenAt), qualifiedAt: alertAt,
+          firstSeenAt: finite(row.firstSeenAt), qualifiedAt: finite(row.qualifiedAt),
+          ...signal, ...(upgraded ? { alertKind: 'momentum' } : {}),
           sourceUpdatedAt: finite(row.sourceUpdatedAt), expiresAt: finite(row.expiresAt),
           displayUntil: retained ? finite(row.displayUntil) : null,
           retainedSnapshot: retained, evidenceStale: retained, stale: retained,
@@ -291,7 +297,7 @@ function publicLiveSnapshot(source = {}, chain) {
         stale: row.stale === true, auditEligible: row.auditEligible === true,
         discoveryState: ['READY', 'PENDING', 'STALE'].includes(row.discoveryState) ? row.discoveryState : null,
         website: externalUrl(row.website), twitter: publicMessage(row.twitter, '', 80),
-        ...publicMarketEvidence(row) })) };
+        ...publicMarketEvidence(row), ...publicLeadSignal(row) })) };
   if (output.rows.length && output.rows.every(row => row.stale === true)) output.stale = true;
   return output;
 }

@@ -92,6 +92,23 @@ test('explicit recent-lead speech pins an unverified retained card without openi
   assert.equal(h.context.rank(lead, T), Infinity);
 });
 
+test('momentum spotlight withdraws on downgrade even when the token remains an ordinary observation', () => {
+  const h = harness();
+  h.context.lastData.recommendationGate = { available: false };
+  const lead = { ...liveRow(row()), source: 'observation', status: 'OBSERVATION_READY', qualified: false,
+    recommendationEligible: false, observationEligible: true, alertAt: T, alertUntil: T + 60_000,
+    alertKind: 'momentum', momentum: { state: 'ACTIVE' } };
+  h.context.liveData.rows = [lead];
+  h.events['radar-snapshot']({ detail: { mode: 'observation', alertsAvailable: true, chains: { bsc: [lead] } } });
+  h.events['radar-voice-start']({ detail: { id: 1, startedAt: T, rows: [lead] } });
+  assert.equal(h.context.rank(lead, T), 0);
+  const downgraded = { ...lead, alertKind: undefined, momentum: null };
+  h.context.liveData.rows = [downgraded];
+  h.events['radar-snapshot']({ detail: { mode: 'observation', alertsAvailable: true, chains: { bsc: [downgraded] } } });
+  assert.equal(h.context.rank(lead, T), Infinity);
+  assert.equal(vm.runInContext("unifiedPoolRows('bsc').length", h.context), 1);
+});
+
 test('alert card is first below the header, appears only after playback event and pins the actual existing row', () => {
   assert.ok(html.indexOf('id="voiceSpotlight"') < html.indexOf('id="notice"'));
   const h = harness();

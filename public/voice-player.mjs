@@ -7,6 +7,10 @@ export const OBSERVATION_PHRASES = Object.freeze({
   zh: '发现新的观察线索，尚未安全核验，请查看。',
   en: 'A new observation lead was found. Safety is not verified. Take a look.'
 });
+export const MOMENTUM_PHRASES = Object.freeze({
+  zh: '观察线索持续活跃，请查看行情变化，尚未安全核验。',
+  en: 'An observation lead remains active. Review the market changes. Safety is not verified.'
+});
 export const normalizeVoiceLanguage = language => language === 'en' ? 'en' : 'zh';
 
 // Use voices installed on the listener's device; never redistribute a system recording.
@@ -59,7 +63,7 @@ export function createVoicePlayer({ synthesis = globalThis.speechSynthesis,
       // `paused` flag from the earlier enable click.
       synthesis.resume?.();
       return new Promise((resolve, reject) => {
-        const utterance = makeUtterance((mode === 'observation' ? OBSERVATION_PHRASES : CANDIDATE_PHRASES)[language]);
+        const utterance = makeUtterance((mode === 'momentum' ? MOMENTUM_PHRASES : mode === 'observation' ? OBSERVATION_PHRASES : CANDIDATE_PHRASES)[language]);
         utterance.voice = voice; utterance.lang = voice.lang;
         utterance.volume = Math.min(1, volume); utterance.rate = .9; utterance.pitch = 1.05;
         let timer, started = false;

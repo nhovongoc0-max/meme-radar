@@ -1,6 +1,7 @@
 import { discoveryScreen } from './scoring.mjs';
 import { config } from './config.mjs';
 import { validTokenAddress } from './address.mjs';
+import { LeadSignals, publicLeadSignal } from './lead-signals.mjs';
 
 const number = value => value === null || value === undefined || value === '' || typeof value === 'boolean'
   ? null : Number.isFinite(Number(value)) ? Number(value) : null;
@@ -66,6 +67,7 @@ export function normalizeLiveRows(input, chain, previous = [], at = Date.now(), 
       deltaWindowMs: comparable ? elapsed : null, priceDelta: comparable && price > 0 && old.price > 0 ? price / old.price - 1 : null,
       holdersDelta: holderComparable && holders !== null && old.holders !== null ? holders - old.holders : null, smartDelta: null,
       priorityBand: screen.priorityBand, hasUnknownRisk: true, auditEligible: screen.pass,
+      observationProvider: raw.marketOverlayProvider === 'DEXSCREENER' ? 'DEXSCREENER' : raw.marketOverlayProvider ? null : 'AVE',
       pairAddress: raw.pairAddress, website: safeUrl(raw.website), twitter: safeText(raw.twitter_username, 80)
     });
   }
@@ -84,6 +86,7 @@ export class LiveDiscovery {
     this.overlayTimeoutMs = Math.max(1, Math.min(10000, Number(overlayTimeoutMs) || 10000));
     this.cacheReads = new Map(); this.cachedInputs = new Map(); this.overlayJobs = new Map(); this.overlayNextAt = new Map();
     this.backgroundGeneration = 0;
+    this.signals = new LeadSignals();
     this.states = new Map(); this.raw = new Map(); this.identityHistory = new Map(); this.focus = ''; this.leaseUntil = 0;
     this.nextPollAt = 0; this.running = false; this.timer = null; this.stopped = false; this.epoch = this.provider.keyEpoch;
   }
@@ -101,7 +104,7 @@ export class LiveDiscovery {
 
   syncCredentials() {
     if (this.epoch !== this.provider.keyEpoch) {
-      this.states.clear(); this.raw.clear(); this.resetBackground(); this.epoch = this.provider.keyEpoch;
+      this.states.clear(); this.raw.clear(); this.signals.reset(); this.resetBackground(); this.epoch = this.provider.keyEpoch;
     }
   }
 
@@ -198,7 +201,7 @@ export class LiveDiscovery {
     for (const row of rows) history.set(row.address, { address: row.address, chain, marketProvider: 'AVE',
       firstSeenAt: row.firstSeenAt, newAt: row.newAt, qualifiedAt: row.qualifiedAt, lastSeenAt: at });
     this.identityHistory.set(chain, history);
-    return rows;
+    return this.signals.observe(input, rows, chain, at);
   }
 
   touch(chain) {
@@ -321,7 +324,7 @@ export class LiveDiscovery {
     const rows = state.rows.map(row => {
       if (row.marketProvider !== 'AVE') return row;
       const stale = row.stale || this.now() - row.sourceUpdatedAt > 60000 || row.expiresAt !== null && row.expiresAt <= this.now();
-      return { ...row, stale, auditEligible: row.auditEligible && !stale,
+      return { ...row, ...publicLeadSignal({ ...row, stale }, this.now()), stale, auditEligible: row.auditEligible && !stale,
         discoveryState: row.discoveryState === 'READY' && stale ? 'STALE' : row.discoveryState };
     });
     const diagnostics = state.diagnostics ? { ...state.diagnostics, ready: rows.filter(row => row.auditEligible).length,
@@ -346,5 +349,5 @@ export class LiveDiscovery {
     return structuredClone(audit);
   }
 
-  stop() { this.stopped = true; this.resetBackground(); this.controller?.abort(); if (this.timer) this.cancel(this.timer); this.timer = null; }
+  stop() { this.stopped = true; this.signals.reset(); this.resetBackground(); this.controller?.abort(); if (this.timer) this.cancel(this.timer); this.timer = null; }
 }

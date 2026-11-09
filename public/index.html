@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='26' fill='%230d1519' stroke='%2343efaa' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%2343efaa'/%3E%3C/svg%3E">
-  <title>Meme雷达开源版 V2.1.2</title>
+  <title>Meme雷达开源版 V2.2.0</title>
   <script>
     if (location.protocol === 'file:') location.replace('http://127.0.0.1:3791/' + location.hash);
   </script>
@@ -673,6 +673,10 @@
     .live-card .mini-button { border-radius: 8px; padding: 8px 12px; }
     .live-card .mini-button.primary { color: #0d231a; background: #70dda9; border-color: #70dda9; }
     .live-card.voice-highlight { border: 2px solid #70dda9; background: #18352b; scroll-margin-top: 180px; }
+    .live-card.momentum-active { border-color: #70dda9; box-shadow: inset 0 0 0 1px #70dda955; }
+    .lead-reasons { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+    .lead-reasons span { color: #9cc8bd; border: 1px solid #34564e; border-radius: 12px; padding: 2px 8px; font-size: 14px; }
+    .live-tag.momentum-cooling { color: #f2cf91; background: #463722; }
     .voice-panel { padding: 14px 20px; }
     .voice-panel .manage-actions { margin: 0; }
     .advanced-panel { margin-top: 24px; }
@@ -741,7 +745,7 @@
     <header>
       <div class="brand">
         <div class="mark">雷达</div>
-        <h1 data-i18n="appTitle">Meme雷达开源版 V2.1.2</h1>
+        <h1 data-i18n="appTitle">Meme雷达开源版 V2.2.0</h1>
       </div>
       <div class="header-actions">
         <label class="language-control" for="languageSelect">
@@ -1009,6 +1013,14 @@
       livePending: ['待补行情','待補行情','Awaiting market data','相場データ待ち','시세 데이터 대기','بانتظار بيانات السوق'],
       liveFetching: ['补充中','補充中','Loading','取得中','불러오는 중','جارٍ الاستكمال'],
       liveEligible: ['初筛 · 未核验','初篩 · 未核驗','Screened · Unverified','一次選別・未検証','1차 선별 · 미검증','فحص أولي · غير متحقق'],
+      leadReasons: ['入选理由','入選理由','Observation reasons','観察理由','관찰 이유','أسباب المراقبة'],
+      reasonVolume: ['成交活跃','成交活躍','Active volume','活発な取引','활발한 거래','تداول نشط'],
+      reasonLiquidity: ['流动性增加','流動性增加','Liquidity rising','流動性増加','유동성 증가','ارتفاع السيولة'],
+      reasonNew: ['新入选','新入選','Newly observed','新たな候補','새 관찰 후보','مرشح جديد'],
+      momentumActive: ['持续活跃 · 未核验','持續活躍 · 未核驗','Sustained activity · Unverified','継続的な活況・未検証','활동 지속 · 미검증','نشاط مستمر · غير متحقق'],
+      momentumCooling: ['异动回落 · 注意','異動回落 · 注意','Activity weakening · Caution','活況後の下落・注意','활동 약화 · 주의','تراجع النشاط · انتبه'],
+      momentumHelp: ['同源同池至少3次有效行情、跨越至少5分钟；仅为行情观察，不代表安全或买入信号。','同源同池至少3次有效行情、跨越至少5分鐘；僅為行情觀察，不代表安全或買入訊號。','At least 3 distinct quotes from the same source and pool over 5+ minutes. Observation only, not a safety or buy signal.','同一ソース・プールの3件以上の相異なる価格情報、5分以上。安全性や買いの推奨ではありません。','같은 출처·풀의 5분 이상 서로 다른 시세 3회 이상. 안전 보장이나 매수 신호가 아닙니다.','3 قراءات مختلفة على الأقل من المصدر والمجمع نفسيهما خلال 5 دقائق أو أكثر. ليست ضمان سلامة أو إشارة شراء.'],
+      momentumCoolingHelp: ['同源同池的流动性较上一观察下降至少20%，或价格下降至少15%；已撤下升级高亮。','同源同池的流動性較上一觀察下降至少20%，或價格下降至少15%；已撤下升級高亮。','Liquidity fell at least 20% or price fell at least 15% versus the previous same-source, same-pool observation. Highlight withdrawn.','前回の同一ソース・プール比で流動性20%以上または価格15%以上低下。強調を解除。','동일 출처·풀의 이전 관찰 대비 유동성 20% 또는 가격 15% 이상 하락. 강조 해제.','انخفضت السيولة 20٪ أو السعر 15٪ على الأقل مقارنة بالملاحظة السابقة من المصدر والمجمع نفسيهما. أُزيل التمييز.'],
       liveRetained: ['最近线索 · 仅展示','最近線索 · 僅顯示','Recent lead · display only','最近の候補・表示のみ','최근 단서 · 표시 전용','إشارة حديثة · للعرض فقط'],
       liveCardClocks: ['入选 {first} · 行情 {quote}', '入選 {first} · 行情 {quote}', 'Qualified {first} · Quote {quote}', '初回通過 {first} · 相場 {quote}', '첫 통과 {first} · 시세 {quote}', 'التأهل {first} · السعر {quote}'],
       liveCoverage: ['收到 {received} · 范围内 {scope} · 待补 {pending} · 待更新 {stale} · 可核验 {ready} · 已过滤 {excluded}',
@@ -1069,7 +1081,7 @@
       riskAlert: ['风险或证据状态恶化，请重新复核','風險或證據狀態惡化，請重新複核','Risk or evidence worsened; review again','リスク・証拠状態が悪化。再確認してください','위험 또는 근거 상태 악화; 재검토 필요','تدهورت المخاطر أو الأدلة؛ راجع مجددًا'],
       failureAlert: ['扫描长时间未成功，请检查连接','掃描長時間未成功，請檢查連線','No successful scan for an extended period; check connectivity','スキャン成功が長時間ありません。接続を確認してください','장시간 스캔 성공 없음; 연결 확인 필요','لم ينجح المسح منذ فترة؛ تحقق من الاتصال'],
       notificationUnavailable: ['浏览器未允许通知，页面事件仍可查看','瀏覽器未允許通知，仍可查看頁面事件','Notifications unavailable; in-page events remain available','通知を利用できません。ページ内履歴は表示されます','알림을 사용할 수 없습니다. 페이지 기록은 유지됩니다','الإشعارات غير متاحة؛ تبقى أحداث الصفحة'],
-      appTitle: ['Meme雷达开源版 V2.1.2', 'Meme雷達開源版 V2.1.2', 'Meme Radar Open Source V2.1.2', 'Memeレーダー オープンソース版 V2.1.2', 'Meme 레이더 오픈 소스판 V2.1.2', 'رادار Meme مفتوح المصدر V2.1.2'],
+      appTitle: ['Meme雷达开源版 V2.2.0', 'Meme雷達開源版 V2.2.0', 'Meme Radar Open Source V2.2.0', 'Memeレーダー オープンソース版 V2.2.0', 'Meme 레이더 오픈 소스판 V2.2.0', 'رادار Meme مفتوح المصدر V2.2.0'],
       languageLabel: ['语言', '語言', 'Language', '言語', '언어', 'اللغة'],
       languageAria: ['选择语言', '選擇語言', 'Select language', '言語を選択', '언어 선택', 'اختيار اللغة'],
       waitingState: ['等待状态', '等待狀態', 'Waiting', '待機中', '대기 중', 'في الانتظار'],
@@ -1817,7 +1829,21 @@
     // One visible candidate pool, sourced only from the current fast discovery
     // snapshot. Historical audit rows may veto risk, but never refill a token
     // that has fallen out of the current market screen.
+    function currentLeadSignal(row, now) {
+      return row && !row.retainedSnapshot && row.stale === false && row.auditEligible === true
+        && row.sourceUpdatedAt > 0 && row.sourceUpdatedAt <= now && now - row.sourceUpdatedAt <= 60000 && row.expiresAt > now;
+    }
+    function momentumActive(row, now) { return currentLeadSignal(row, now) && row.momentum?.state === 'ACTIVE'; }
+    function leadReasons(row, now) {
+      if (!currentLeadSignal(row, now)) return '';
+      const keys = { ACTIVE_VOLUME: 'reasonVolume', LIQUIDITY_RISING: 'reasonLiquidity', NEW_LEAD: 'reasonNew' };
+      const labels = [...new Set(Array.isArray(row.reasonCodes) ? row.reasonCodes : [])]
+        .filter(code => keys[code] && (code !== 'NEW_LEAD' || now - row.qualifiedAt < 120000)).slice(0, 2);
+      return labels.length ? '<div class="lead-reasons" aria-label="' + escapeHtml(t('leadReasons')) + '">'
+        + labels.map(code => '<span>' + escapeHtml(t(keys[code])) + '</span>').join('') + '</div>' : '';
+    }
     function observationVoiceReady(row, now) {
+      if (row?.alertKind === 'momentum' && !momentumActive(row, now)) return false;
       return voiceSpotlightSnapshot?.mode === 'observation' && voiceSpotlightSnapshot?.alertsAvailable === true
         && row?.source === 'observation' && row.status === 'OBSERVATION_READY' && row.observationEligible === true
         && row.qualified === false && row.recommendationEligible === false
@@ -1902,6 +1928,8 @@
       if (current && ['HARD_REJECT', 'REJECTED'].includes(current.status)) return 'voiceSpotlightRejected';
       if (!voiceSpotlightOnline) return 'voiceSpotlightOffline';
       if (!current || entry.chain === activeChain(lastData) && !row) return 'voiceSpotlightMissing';
+      if (row?.momentum?.state === 'COOLING' || entry.alertKind === 'momentum'
+        && (current.alertKind !== 'momentum' || !momentumActive(current, now) || row && !momentumActive(row, now))) return 'voiceSpotlightChanged';
       if (entry.source === 'observation') {
         if (now - voiceSpotlight.startedAt > 600000 || !(current.alertUntil > now)) return 'voiceSpotlightExpired';
         return observationVoiceReady(current, now) ? 'voiceSpotlightReady' : 'voiceSpotlightChanged';
@@ -1957,7 +1985,8 @@
       detail.rows.slice(0, 600).forEach(function (row) {
         if (!row || !chainCatalog.some(function (chain) { return chain.id === row.chain; }) || typeof row.address !== 'string'
           || !(row.chain === 'sol' ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(row.address) : /^0x[0-9a-f]{40}$/i.test(row.address))) return;
-        const item = { source: row.source === 'observation' ? 'observation' : row.source === 'live' ? 'live' : 'audit', chain: row.chain, address: addressIdentity(row.address) };
+        const item = { source: row.source === 'observation' ? 'observation' : row.source === 'live' ? 'live' : 'audit', chain: row.chain, address: addressIdentity(row.address),
+          ...(row.alertKind === 'momentum' ? { alertKind: 'momentum' } : {}) };
         unique.set(voiceSpotlightKey(item), item);
       });
       if (!unique.size) return;
@@ -2482,7 +2511,8 @@
       rows = rows.slice().sort(function (a, b) {
         const aVoice = voiceSpotlightRank(a, now), bVoice = voiceSpotlightRank(b, now);
         if (aVoice !== bVoice) return aVoice - bVoice;
-        return Number(b.auditEligible) - Number(a.auditEligible)
+        return Number(serviceOnline && liveEnabled && momentumActive(b, now)) - Number(serviceOnline && liveEnabled && momentumActive(a, now))
+          || Number(b.auditEligible) - Number(a.auditEligible)
           || (mode === 'new' ? number(b.qualifiedAt || b.newAt || b.firstSeenAt) - number(a.qualifiedAt || a.newAt || a.firstSeenAt) : 0)
           || (mode === 'priority' ? Number(b.priorityBand) - Number(a.priorityBand) : 0)
           || number(b.volume5m) - number(a.volume5m)
@@ -2506,11 +2536,14 @@
         const isNew = row.auditEligible === true && !row.stale && !row.retainedSnapshot
           && appearedAt && now - appearedAt >= 0 && now - appearedAt < 120000;
         const spotlight = Number.isFinite(voiceSpotlightRank(row, Date.now()));
+        const upgraded = serviceOnline && liveEnabled && !updateFailed && momentumActive(row, now);
+        const cooling = currentLeadSignal(row, now) && row.momentum?.state === 'COOLING';
         const links = radarLinks(row);
         const unit = function (label, value, tone) { return '<div><small>' + escapeHtml(label) + '</small><b class="mono ' + (tone || '') + '">' + escapeHtml(value) + '</b></div>'; };
-        return '<article id="live-card-' + encodeURIComponent(voiceSpotlightKey(row)) + '" tabindex="-1" class="live-card' + (isNew ? ' new-sighting' : '') + (spotlight ? ' voice-highlight' : '') + '"><div class="live-card-head"><strong>' + escapeHtml(row.symbol) + '</strong>'
-          + '<span class="live-tag">' + escapeHtml(t(row.retainedSnapshot ? 'liveRetained' : row.discoveryState === 'PENDING' ? 'livePending' : row.stale ? 'liveStale' : row.auditEligible ? 'liveEligible' : isNew ? 'liveNew' : 'liveUnreviewed')) + '</span></div><div class="muted">' + escapeHtml(row.name) + '</div>'
+        return '<article id="live-card-' + encodeURIComponent(voiceSpotlightKey(row)) + '" tabindex="-1" class="live-card' + (isNew ? ' new-sighting' : '') + (spotlight ? ' voice-highlight' : '') + (upgraded ? ' momentum-active' : '') + '"><div class="live-card-head"><strong>' + escapeHtml(row.symbol) + '</strong>'
+          + '<span class="live-tag' + (cooling ? ' momentum-cooling' : '') + '"' + (upgraded || cooling ? ' title="' + escapeHtml(t(cooling ? 'momentumCoolingHelp' : 'momentumHelp')) + '"' : '') + '>' + escapeHtml(t(cooling ? 'momentumCooling' : upgraded ? 'momentumActive' : row.retainedSnapshot ? 'liveRetained' : row.discoveryState === 'PENDING' ? 'livePending' : row.stale ? 'liveStale' : row.auditEligible ? 'liveEligible' : isNew ? 'liveNew' : 'liveUnreviewed')) + '</span></div><div class="muted">' + escapeHtml(row.name) + '</div>'
           + '<div class="addr mono">' + escapeHtml(row.address.slice(0,8) + '…' + row.address.slice(-6)) + '</div>'
+          + leadReasons(row, now)
           + '<div class="live-numbers">' + unit(t('liveCap'), formatMoney(row.marketCap))
           + unit(t('liveLp'), Number.isFinite(row.liquidity) ? formatMoney(row.liquidity) : t('liveFetching'))
           + unit(t('liveVolume'), Number.isFinite(row.volume5m) ? formatMoney(row.volume5m) : t('liveFetching'))
@@ -2522,7 +2555,7 @@
         + (query ? '<p><button class="mini-button" type="button" data-live-reset>' + escapeHtml(t('liveShowAll')) + '</button></p>' : '') + '</div>';
       const frontRow = byId('neuralAlertRows');
       frontRow.replaceChildren();
-      byId('liveRows').querySelectorAll('.voice-highlight').forEach(function (card) { frontRow.appendChild(card); });
+      byId('liveRows').querySelectorAll('.voice-highlight, .momentum-active').forEach(function (card) { frontRow.appendChild(card); });
       frontRow.hidden = !frontRow.childElementCount;
     }
 

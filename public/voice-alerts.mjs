@@ -2,9 +2,12 @@
 // Quote refreshes, page rotation and interrupted playback must never make the
 // same contract sound like a newly discovered coin again.
 export const VOICE_TTL = 7 * 24 * 60 * 60_000;
-export const voiceKey = row => `${row.chain}:${row.chain === 'sol' ? row.address : row.address.toLowerCase()}`;
+export const voiceKey = row => `${row.chain}:${row.chain === 'sol' ? row.address : row.address.toLowerCase()}${row.alertKind === 'momentum' ? ':momentum' : ''}`;
 export function voiceEligible(row, now) {
   if (row?.source === 'observation') {
+    if (row.alertKind === 'momentum' && (row.momentum?.state !== 'ACTIVE' || row.stale !== false
+      || row.retainedSnapshot === true || row.auditEligible !== true || !(row.expiresAt > now)
+      || !(row.sourceUpdatedAt > 0 && row.sourceUpdatedAt <= now && now - row.sourceUpdatedAt <= 60_000))) return false;
     return typeof row.address === 'string' && typeof row.chain === 'string'
       && row.status === 'OBSERVATION_READY' && row.observationEligible === true
       && row.qualified === false && row.recommendationEligible === false

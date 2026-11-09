@@ -56,6 +56,30 @@ async function enable(h) {
   h.snapshot(); const pending = h.click('voiceEnable'); await flush(); h.start(); h.finish(); await pending; await flush();
 }
 
+test('momentum upgrades speak independently after first sighting, dedupe across tabs and cancel on downgrade', async () => {
+  const a = harness({ autoStart: false }), b = harness({ hub: a.hub, autoStart: false });
+  await enable(a); await enable(b); a.advance(); b.advance();
+  const base = a.row();
+  const lead = { ...base, source: 'observation', status: 'OBSERVATION_READY', qualified: false,
+    recommendationEligible: false, observationEligible: true, stale: false, auditEligible: true,
+    sourceUpdatedAt: base.auditedAt, expiresAt: base.staleAt, alertAt: base.auditedAt, alertUntil: base.staleAt };
+  const send = (h, rows) => h.events['radar-snapshot']({ detail: { mode: 'observation', alertsAvailable: true, chains: { bsc: rows } } });
+  send(a, [lead]); await flush(); a.start(); a.finish(); await flush();
+  assert.ok(a.history.notified[voiceKey(lead)]);
+  a.advance(61_000); b.advance(61_000);
+  const upgraded = { ...lead, alertKind: 'momentum', sourceUpdatedAt: a.row().auditedAt,
+    alertAt: a.row().auditedAt, momentum: { state: 'ACTIVE' } };
+  send(a, [upgraded]); send(b, [upgraded]); await flush();
+  assert.equal(a.playModes.at(-1), 'momentum'); a.start(); a.finish(); await flush();
+  assert.equal(a.emitted.filter(e => e.type === 'radar-voice-start').at(-1).detail.rows[0].alertKind, 'momentum');
+  send(b, [upgraded]); await flush(); assert.equal(b.plays, 1, 'other tab only played its manual preview');
+  a.advance(61_000);
+  const next = { ...upgraded, address: 'second-upgrade', sourceUpdatedAt: a.row().auditedAt, alertAt: a.row().auditedAt };
+  send(a, [next]); await flush();
+  send(a, [{ ...next, momentum: { state: 'COOLING' } }]); a.start(); await flush();
+  assert.equal(a.history.notified[voiceKey(next)], undefined);
+});
+
 test('recent unverified observations announce, deduplicate across tabs and cancel if removed before speech starts', async () => {
   const a = harness({ autoStart: false }), b = harness({ hub: a.hub, autoStart: false });
   await enable(a); await enable(b); a.advance(); b.advance();
