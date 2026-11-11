@@ -1,0 +1,18 @@
+# Store and check out every text file with LF endings.
+#
+# Inline <style>/<script> hashes in the Content-Security-Policy are computed over
+# newline-normalized content, as the HTML parser does. Git for Windows defaults to
+# core.autocrlf=true, which rewrites the working copy to CRLF; the hashes then stop
+# matching and the browser blocks every inline style and script, leaving the page
+# completely unstyled. Pinning LF here keeps that from happening on any platform.
+* text=auto eol=lf
+
+# Binary assets must never be line-ending converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.woff binary
+*.woff2 binary
